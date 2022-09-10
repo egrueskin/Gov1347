@@ -1,0 +1,10 @@
+---
+title: 'Blog Post #1'
+author: Ellie Grueskin
+date: '2022-09-10'
+slug: []
+categories: []
+tags: []
+---
+
+Hey!
