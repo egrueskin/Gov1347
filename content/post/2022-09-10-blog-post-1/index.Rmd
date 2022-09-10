@@ -42,7 +42,7 @@ h_avg_2<-h_avg %>%
 
 plot_usmap(data = h_avg_2%>% filter(raceYear>1950), regions = "states", values = "diff") +
   facet_wrap(facets = raceYear ~.) +
-  scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "Diff in GOP two-party 4-yr \n voteshare margin") +
+  scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "Diff in GOP two-party 4-yr \n voteshare margin\n gray means uncontested or not available") +
   theme_void()
 ```
 
