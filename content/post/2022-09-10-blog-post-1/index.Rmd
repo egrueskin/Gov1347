@@ -8,3 +8,30 @@ tags: []
 ---
 
 Hey!
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Section1/Section Data")
+h<- read.csv('house party vote share by district 1948-2020.csv')
+library(tidyverse)
+seat_share<-read.csv('house seat share by party 1948-2020.csv')
+
+
+```
+
+```{r}
+hm<-h_2016_2020 %>%
+  group_by(state) %>%
+  mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
+  mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
+         R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
+  mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
+
+
+
+plot_usmap(data = hm%>% filter(raceYear>1950), regions = "states", values = "diff") +
+  facet_wrap(facets = raceYear ~.) +
+  scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "Diff in GOP two-party 4-yr \n voteshare margin") +
+  theme_void()
+```
+
