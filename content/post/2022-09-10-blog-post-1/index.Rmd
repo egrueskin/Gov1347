@@ -1,23 +1,25 @@
 ---
 title: 'Blog Post #1'
-author: Ellie Grueskin
-date: '2022-09-10'
-output: html_document
+author: "Ellie Grueskin"
+date: "2022-09-10"
+output:
+  pdf_document: default
+  html_document: default
 slug: []
 categories: []
 tags: []
 ---
 
+In this blog post, I focus on the third extension project: Swing state map
 Extension Swing State
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 h<-read.csv("Week1_data/house party vote share by district 1948-2020.csv")
 library(tidyverse)
-
 library(usmap)
 ```
 
-```{r}
+```{r, message=FALSE}
 
 #Find house averages by state and year
 h_avg <- h %>%
