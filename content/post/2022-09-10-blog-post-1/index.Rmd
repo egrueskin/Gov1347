@@ -55,7 +55,7 @@ print(p)
 ```
 
 Visualization
-```{r}
+```{r, message=FALSE}
 plot_usmap(data = h_avg%>% filter(raceYear==1988), regions = "states", values = "R_votemargin_st") +
   scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "R Vote Margin, 1988") +
   theme_void()
