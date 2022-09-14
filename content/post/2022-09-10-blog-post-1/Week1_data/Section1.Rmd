@@ -1,0 +1,49 @@
+---
+title: "Section1"
+output: pdf_document
+date: "2022-09-08"
+---
+
+```{r}
+library(tidyverse)
+usethis::create_github_token()
+setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Section1/Section Data")
+popvote_df <- read_csv("house nationwide vote and seat share by party 1948-2020.csv")
+house_share<-read.csv('house seat share by party 1948-2020.csv')
+h <- read.csv('house party vote share by district 1948-2020.csv')
+
+hm<-h_2016_2020 %>%
+    group_by(state) %>%
+  mutate(uncontested=ifelse(R_votemargin_st==100|D_votemargin_st==100,1,0))%>%
+  filter(uncontested==0)%>%
+  mutate( diff = R_votemargin_st-lag(R_votemargin_st,2))
+
+require(ggplot2)
+require(sf)
+# load geographic data
+get_congress_map <- function(cong=114) {
+tmp_file <- tempfile()
+tmp_dir <- tempdir()
+zp <- sprintf("https://cdmaps.polisci.ucla.edu/shp/districts114.zip",cong)
+download.file(zp, tmp_file)
+unzip(zipfile = tmp_file, exdir = tmp_dir)
+fpath <- paste(tmp_dir, sprintf("districtShapes/districts114.shp",cong), sep = "/")
+st_read(fpath)
+}
+cd114 <- get_congress_map(114)
+cd114_nj <- cd114 %>%
+
+filter(STATENAME=="New Jersey") %>%
+mutate(DISTRICT = as.character(DISTRICT))%>%
+select(DISTRICT)
+
+# add data to plot - 2014 GOP party seat share
+# reload election data - h from previous exercise
+getwd()
+setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Section1/Section Data")
+h <- read.csv('house party vote share by district 1948-2020.csv')
+
+```
+
+setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Section1/Section Data")
+
