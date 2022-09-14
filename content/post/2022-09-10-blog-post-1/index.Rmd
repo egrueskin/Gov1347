@@ -50,9 +50,6 @@ print(p)
 
                        #in GOP  4-yr \n voteshare margin\n gray means uncontested or not available") +
 
-library(blogdown)
-setwd('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/content/post/2022-09-10-blog-post-1')
-blogdown::build_site(build_rmd = TRUE)
 ```
 
 Visualization
@@ -72,46 +69,45 @@ R_2 <- h %>%
     summarise(Rep_votes_pct = RepVotesMajorPercent) %>%
 # rename district variable name to match shapefile
     rename(DISTRICT = district_num,STATENAME=State)
-require(tidyverse)
-require(ggplot2)
-require(sf)
-# load geographic data
-get_congress_map <- function(cong=114) {
-  tmp_file <- tempfile()
-  tmp_dir <- tempdir()
-  zp <- sprintf("https://cdmaps.polisci.ucla.edu/shp/districts114.zip",cong) 
-  download.file(zp, tmp_file)
-    unzip(zipfile = tmp_file, exdir = tmp_dir)
-    fpath <- paste(tmp_dir, sprintf("districtShapes/districts114.shp",cong), sep = "/")
-    st_read(fpath)
-}
-
-cd114 <- get_congress_map(114)
-cd114 <- cd114%>%
-            mutate(DISTRICT = as.character(DISTRICT))%>%
-            select(DISTRICT,STATENAME)
-cd114$DISTRICT <- as.numeric(cd114$DISTRICT)
-# join election returns with shapefiles
-cd114 <- cd114 %>% left_join(R_2, by=c("DISTRICT","STATENAME"))
-cd114
-setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Section1/Section Data")
-                               #%in%c('Arizona','Georgia','Iowa','Pennsylvania'))
-
-ggplot(data=cd114%>% filter(STATENAME %in% c('New York'))) +
-         geom_sf(aes(fill=Rep_votes_pct),
-          inherit.aes=FALSE,alpha=0.9) +
-  scale_fill_gradient(low = "white", high = "red", limits=c(10,80)) +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank(),
-        axis.title.y=element_blank(),
-        axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
-
-+geom_label(
-    label=rownames(cd114), 
-    nudge_x = 0.25, nudge_y = 0.25, 
-    check_overlap = T
-  )
+# require(tidyverse)
+# require(ggplot2)
+# require(sf)
+# # load geographic data
+# get_congress_map <- function(cong=114) {
+#   tmp_file <- tempfile()
+#   tmp_dir <- tempdir()
+#   zp <- sprintf("https://cdmaps.polisci.ucla.edu/shp/districts114.zip",cong) 
+#   download.file(zp, tmp_file)
+#     unzip(zipfile = tmp_file, exdir = tmp_dir)
+#     fpath <- paste(tmp_dir, sprintf("districtShapes/districts114.shp",cong), sep = "/")
+#     st_read(fpath)
+# }
+# 
+# cd114 <- get_congress_map(114)
+# cd114 <- cd114%>%
+#             mutate(DISTRICT = as.character(DISTRICT))%>%
+#             select(DISTRICT,STATENAME)
+# cd114$DISTRICT <- as.numeric(cd114$DISTRICT)
+# # join election returns with shapefiles
+# cd114 <- cd114 %>% left_join(R_2, by=c("DISTRICT","STATENAME"))
+# cd114
+#  #%in%c('Arizona','Georgia','Iowa','Pennsylvania'))
+# 
+# ggplot(data=cd114%>% filter(STATENAME %in% c('New York'))) +
+#          geom_sf(aes(fill=Rep_votes_pct),
+#           inherit.aes=FALSE,alpha=0.9) +
+#   scale_fill_gradient(low = "white", high = "red", limits=c(10,80)) +
+#   theme(axis.title.x=element_blank(),
+#         axis.text.x=element_blank(),
+#         axis.ticks.x=element_blank(),
+#         axis.title.y=element_blank(),
+#         axis.text.y=element_blank(),
+#         axis.ticks.y=element_blank()) 
+# 
+# +geom_label(
+#     label=rownames(cd114), 
+#     nudge_x = 0.25, nudge_y = 0.25, 
+#     check_overlap = T
+#   )
 ```
 
