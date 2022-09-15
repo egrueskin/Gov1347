@@ -7,7 +7,9 @@ output:
   pdf_document: default
 slug: []
 categories: []
-summary: Hey! I'm Ellie Grueskin, a senior.
+summary: In this post, I explore house wide races from 1948 to the present. I examine 
+this primarily from a state-wide pooling with a special section at the end for 
+the district I'll be following, Ohio-01. 
 tags: []
 ---
 
@@ -82,17 +84,16 @@ popular vote share over years. Most of the largest variations (or darkest colors
 occur in the lower-populated states with fewer representatives, particularly when
 at least one race is uncontested.
 
-I found it interesting how a number of Midwest states like Iowa, Missouri appeared
-to be battleground states until about 2010, at which point they turned red and haven't
-switched since. On the other hand, states slightly north like Michigan, Wisconsin,
+The two states that seemed to have lost their battleground status are Missouri and Colorado, with the former turning more red and the latter turning more blue. On the other hand, states slightly north like Michigan, Wisconsin,
 Pennsylvania, and Minnesota appear to have stayed as battleground states in spite
 of demographic and polarization changes. 
 
 Next, I plotted the two year differences by state because our interest this year
-is in predicting a midterm year. 
+is in predicting a midterm year. In this section, I only used maps from 1950 because
+1948 was the first year in this dataset. 
 
 ```{r, message=FALSE}
-h_avg_2
+
 # 4- year differences
 p_2yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1948), regions = "states", values = "diff_2yr")+
   facet_wrap(~raceYear) +
@@ -137,11 +138,11 @@ Through this plot, I pay particular attention to voting patterns throughout the 
 since the incumbent, Steve Chabot, took office. As you can see, the district has 
 been red the majority of the time, with incumbent Republicans doing especially well.
 
-Steve Chabot first took office in 1994 and has only lost once since in 2008. 
+Steve Chabot first took office in 1994 and has been reelected every year but 2008. 
 This could've been because of the Great Recession and overall discontent with the 
 Republican party. While Chabot's popularity was rising throughout the mid 2010's,
-it appears to have taken a hit with his winning margin only around .5 throughout the last
-4 years. 
+it appears to have taken a hit with his winning margin only around .05 throughout the last 4 years. Another noteworthy element: I removed the data from 1992 where a Democrat (David Mann) ran uncontested and won because it was enlarging the y-axis too much. 
+Mann ended up losing to Steve Chabot in 1994 by a sizable margin of 0.1. 
 
 
 *Conclusion*
@@ -151,88 +152,7 @@ two and four year intervals. While many battleground states remain in place like
 Florida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
 appear to be leaning more one party than earlier. 
 
+As mentioned earlier, the popular vote does not carry a 1:1 relationship with 
+seat share, so this blog is more examining trends than exact ramifications.
+
 I look forward to updating this blog and diving deeper into the Ohio-01 district race. 
-
-Visualization
-```{r, message=FALSE, echo=FALSE}
-# plot_usmap(data = h_avg%>% filter(raceYear==1988), regions = "states", values = "R_votemargin_st") +
-#   scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "R Vote Margin, 1988") +
-#   theme_void()
-# 
-# 
-# urlfile="https://raw.githubusercontent.com/kjhealy/fips-codes/master/county_fips_master.csv"
-# 
-# R_2 <- h %>%
-#     filter(raceYear == 2014) %>%
-#     select(raceYear, State, district_num, RepVotesMajorPercent, DemVotesMajorPercent) %>%
-  # summarize party vote share by district
-    group_by(State,district_num) %>%
-    summarise(Rep_votes_pct = RepVotesMajorPercent) %>%
-# rename district variable name to match shapefile
-    rename(DISTRICT = district_num,STATENAME=State)
-# require(tidyverse)
-# require(ggplot2)
-# require(sf)
-# # load geographic data
-# get_congress_map <- function(cong=114) {
-#   tmp_file <- tempfile()
-#   tmp_dir <- tempdir()
-#   zp <- sprintf("https://cdmaps.polisci.ucla.edu/shp/districts114.zip",cong) 
-#   download.file(zp, tmp_file)
-#     unzip(zipfile = tmp_file, exdir = tmp_dir)
-#     fpath <- paste(tmp_dir, sprintf("districtShapes/districts114.shp",cong), sep = "/")
-#     st_read(fpath)
-# }
-# 
-# cd114 <- get_congress_map(114)
-# cd114 <- cd114%>%
-#             mutate(DISTRICT = as.character(DISTRICT))%>%
-#             select(DISTRICT,STATENAME)
-# cd114$DISTRICT <- as.numeric(cd114$DISTRICT)
-# # join election returns with shapefiles
-# cd114 <- cd114 %>% left_join(R_2, by=c("DISTRICT","STATENAME"))
-# cd114
-#  #%in%c('Arizona','Georgia','Iowa','Pennsylvania'))
-# 
-# ggplot(data=cd114%>% filter(STATENAME %in% c('New York'))) +
-#          geom_sf(aes(fill=Rep_votes_pct),
-#           inherit.aes=FALSE,alpha=0.9) +
-#   scale_fill_gradient(low = "white", high = "red", limits=c(10,80)) +
-#   theme(axis.title.x=element_blank(),
-#         axis.text.x=element_blank(),
-#         axis.ticks.x=element_blank(),
-#         axis.title.y=element_blank(),
-#         axis.text.y=element_blank(),
-#         axis.ticks.y=element_blank()) 
-# 
-# +geom_label(
-#     label=rownames(cd114), 
-#     nudge_x = 0.25, nudge_y = 0.25, 
-#     check_overlap = T
-#   )
-# 
-#   mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
-#   mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
-#          R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
-    
-```
-
-```{r}
-
-# # keep uncontested values
-# h_avg_st<-h_avg %>%
-#   group_by(state) %>%
-#   #Lag by 4 years or 2 observations
-#   mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
-# 
-# 
-# p<-plot_usmap(data=h_avg_st%>% filter(raceYear>1950), regions = "states", values = "diff")+
-#   facet_wrap(~raceYear) +
-#   scale_fill_gradient2(low = "blue", mid="white",high = "red", 
-#   name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
-#  subtitle='Red=More Republican, Blue=More Democrat, Gray=unavailable')+
-#   theme(legend.position="right")+
-#   theme_void()
-
-```
-
