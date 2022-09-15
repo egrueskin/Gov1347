@@ -24,8 +24,7 @@ years. At the end, I will also begin exploring my specific house race: Ohio-01.
 My dataset is a collection of the vote data for each house election, dating
 back to 1948. Each observation contains the congressional district's name, state, candidates, and respective votes for each election. As well, it gives information as to whether
 the candidate was an incumbent or challenger. In this analysis, I reformat the data
-to exclude independent and write-in candidates, such that the 'vote share' margin is  
-calculated as the number of Democratic or Republican votes divided by the sum of 
+to exclude independent and write-in candidates, such that the 'vote share' margin is calculated as the number of Democratic or Republican votes divided by the sum of 
 their votes. 
 
 *Results - Swing States over Time* 
