@@ -7,7 +7,7 @@ output:
   pdf_document: default
 slug: []
 categories: []
-summary: In this post, I explore house wide races from 1948 to the present. I examine this primarily from a state-wide pooling with a special section at the end for the district I'll be following, Ohio-01.
+summary: In this post, I explore United States House races from 1948 to the present. I conduct the majority of my analysis through state-wide pooling with a special section at the end for the district I'll be following, Ohio-01.
 tags: []
 ---
 
@@ -151,6 +151,6 @@ Florida, Michigan, Wisconsin, some of the other states in the Midwest and Southw
 appear to be leaning more one party than earlier. 
 
 As mentioned earlier, the popular vote does not carry a 1:1 relationship with 
-seat share, so this blog is more examining trends than exact ramifications.
+seat share, so this blog is more exploring trends than asserting exact ramifications.
 
 I look forward to updating this blog and diving deeper into the Ohio-01 district race. 
