@@ -41,9 +41,6 @@ h<-read.csv("Week1_data/house party vote share by district 1948-2020.csv")
 library(tidyverse)
 library(usmap)
 library(geomtextpath)
-```
-
-```{r, message=FALSE}
 
 #Find house averages by state and year
 h_avg <- h %>%
@@ -62,6 +59,11 @@ h_avg_2<-h_avg %>%
   #Lag by 4 years or 2 observations
   mutate(diff_4yr = R_votemargin_st-lag(R_votemargin_st,2),
          diff_2yr= R_votemargin_st-lag(R_votemargin_st))
+```
+
+```{r, message=FALSE}
+
+
 
 # 4- year differences
 p_4yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1950), regions = "states", values = "diff_4yr")+
@@ -90,7 +92,7 @@ Next, I plotted the two year differences by state because our interest this year
 is in predicting a midterm year. 
 
 ```{r, message=FALSE}
-
+h_avg_2
 # 4- year differences
 p_2yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1948), regions = "states", values = "diff_2yr")+
   facet_wrap(~raceYear) +
@@ -137,32 +139,32 @@ been red the majority of the time, with incumbent Republicans doing especially w
 
 Steve Chabot first took office in 1994 and has only lost once since in 2008. 
 This could've been because of the Great Recession and overall discontent with the 
-Republican party. While Chabot's popuularity was rising throughout the mid 2010's,
+Republican party. While Chabot's popularity was rising throughout the mid 2010's,
 it appears to have taken a hit with his winning margin only around .5 throughout the last
 4 years. 
 
 
 *Conclusion*
 
-IN my first blog post, I analyzed differences in state-wide house voting by 
+In my first blog post, I analyzed differences in state-wide house voting by 
 two and four year intervals. While many battleground states remain in place like
-FLorida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
+Florida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
 appear to be leaning more one party than earlier. 
 
 I look forward to updating this blog and diving deeper into the Ohio-01 district race. 
 
 Visualization
 ```{r, message=FALSE, echo=FALSE}
-plot_usmap(data = h_avg%>% filter(raceYear==1988), regions = "states", values = "R_votemargin_st") +
-  scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "R Vote Margin, 1988") +
-  theme_void()
-
-
-urlfile="https://raw.githubusercontent.com/kjhealy/fips-codes/master/county_fips_master.csv"
-
-R_2 <- h %>%
-    filter(raceYear == 2014) %>%
-    select(raceYear, State, district_num, RepVotesMajorPercent, DemVotesMajorPercent) %>%
+# plot_usmap(data = h_avg%>% filter(raceYear==1988), regions = "states", values = "R_votemargin_st") +
+#   scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "R Vote Margin, 1988") +
+#   theme_void()
+# 
+# 
+# urlfile="https://raw.githubusercontent.com/kjhealy/fips-codes/master/county_fips_master.csv"
+# 
+# R_2 <- h %>%
+#     filter(raceYear == 2014) %>%
+#     select(raceYear, State, district_num, RepVotesMajorPercent, DemVotesMajorPercent) %>%
   # summarize party vote share by district
     group_by(State,district_num) %>%
     summarise(Rep_votes_pct = RepVotesMajorPercent) %>%
