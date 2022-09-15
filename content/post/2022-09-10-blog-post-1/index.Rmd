@@ -7,7 +7,7 @@ output:
   html_document: default
 slug: []
 categories: []
-summary: Hi all! My name is Ellie Grueskin and I will be. 
+summary: [] 
 tags: []
 ---
 
