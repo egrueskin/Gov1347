@@ -6,7 +6,7 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<title>Blog Post #1 &middot; My New Hugo Site</title>
+		<title>Blog Post #1 - Introduction  &middot; My New Hugo Site</title>
 
 		
 		<link rel="stylesheet" href="/css/style.css">
@@ -53,10 +53,10 @@
     <span>Written by</span>
         Ellie Grueskin
         <br>
-        <span>on&nbsp;</span><time datetime="2022-09-10 00:00:00 &#43;0000 UTC">September 10, 2022</time>
+        <span>on&nbsp;</span><time datetime="2022-09-14 00:00:00 &#43;0000 UTC">September 14, 2022</time>
 </div>
 
-		<h1 class="post-title">Blog Post #1</h1>
+		<h1 class="post-title">Blog Post #1 - Introduction </h1>
 <div class="post-line"></div>
 
 		
@@ -64,12 +64,65 @@
 		
 
 
-<p>In this blog post, I focus on the third extension project: an extension of the
-swing state map. The plot below shows each state’s four-year
-difference in Republican vote margin, starting with 1952 because the dataset only started in 1948.</p>
-<p><img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-1-1.png" width="672" /><img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-1-2.png" width="672" /></p>
+<p><em>Intro</em></p>
+<p>Hello! My name is Ellie Grueskin, and I am a senior at Harvard College studying
+Economics. I will be logging my work in Government 1347: Election
+Analytics, taught by Ryan Enos, throughout the semester. In this introductory post,
+I analyze the popular vote shares in US House races over the last 70
+years. At the end, I will also begin exploring my specific house race: Ohio-01.</p>
+<p><em>Data</em></p>
+<p>My dataset is a collection of the vote data for each house election, dating
+back to 1948. Each observation contains the congressional district’s name, state, candidates, and respective votes for each election. As well, it gives information as to whether
+the candidate was an incumbent or challenger. In this analysis, I reformat the data
+to exclude independent and write-in candidates, such that the ‘vote share’ margin is<br />
+calculated as the number of Democratic or Republican votes divided by the sum of
+their votes.</p>
+<p><em>Results - Swing States over Time</em></p>
+<p>In my first plot, I examine the four-year change in share of a state’s housewide popular votes that went to Republicans. I start with 1952 because the dataset only started in 1948. To clarify, a Republican vote margin above 50% means that Republicans received the majority
+of the popular vote in the state during that year. This does not necessarily translate
+to house seats, as districts are not divided evenly across state’s party divisions.</p>
+<p><img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p>As this map shows, there can be substantial variation in state-wide House
+popular vote share over years. Most of the largest variations (or darkest colors)
+occur in the lower-populated states with fewer representatives, particularly when
+at least one race is uncontested.</p>
+<p>I found it interesting how a number of Midwest states like Iowa, Missouri appeared
+to be battleground states until about 2010, at which point they turned red and haven’t
+switched since. On the other hand, states slightly north like Michigan, Wisconsin,
+Pennsylvania, and Minnesota appear to have stayed as battleground states in spite
+of demographic and polarization changes.</p>
+<p>Next, I plotted the two year differences by state because our interest this year
+is in predicting a midterm year.</p>
+<p><img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>Similar to the earlier plot, the figure above shows that Democrats are losing
+some of the Midwestern states while picking up some of the Southeast and Southwest.
+Many of these states would still be considered battleground, but if patterns persist,
+it’s likely that they would move to the ‘lean/solid’ category.</p>
+<p>I found it particularly interesting how a few recent midterm elections - 1994,
+2010, 2014, and 2018- were associated with significant declines in the incumbent’s
+party’s overall popular vote in house races by state. Similarly, I thought it was
+noteworthy that the overall range in differences was much smaller for this plot.
+I believe this illustrates how an incumbent can often become popular after their
+first term, and therefore capture even more of their vote in subsequent elections.</p>
+<p><em>Results-Ohio</em></p>
+<p>Next, I looked at the specific district I’ll be following - Ohio 01 - over time.</p>
+<p><img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>Through this plot, I pay particular attention to voting patterns throughout the time
+since the incumbent, Steve Chabot, took office. As you can see, the district has
+been red the majority of the time, with incumbent Republicans doing especially well.</p>
+<p>Steve Chabot first took office in 1994 and has only lost once since in 2008.
+This could’ve been because of the Great Recession and overall discontent with the
+Republican party. While Chabot’s popuularity was rising throughout the mid 2010’s,
+it appears to have taken a hit with his winning margin only around .5 throughout the last
+4 years.</p>
+<p><em>Conclusion</em></p>
+<p>IN my first blog post, I analyzed differences in state-wide house voting by
+two and four year intervals. While many battleground states remain in place like
+FLorida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
+appear to be leaning more one party than earlier.</p>
+<p>I look forward to updating this blog and diving deeper into the Ohio-01 district race.</p>
 <p>Visualization
-<img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<img src="http://example.org/post/2022-09-10-blog-post-1/index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 
 
 		
@@ -85,7 +138,7 @@ difference in Republican vote margin, starting with 1952 because the dataset onl
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-09-15 00:13:50.421915 -0400 EDT m=&#43;0.166063876">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-09-15 01:07:42.241064 -0400 EDT m=&#43;0.154855417">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
