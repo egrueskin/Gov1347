@@ -117,7 +117,7 @@ first term, and therefore capture even more of their vote in subsequent election
 
 *Results-Ohio*
 
-Next, I looked at the specific district I'll be following - Ohio 01 - over time.
+Finally, I zoomed into trends in the Ohio District 1, the specific congressional district I'll be following.
 
 ```{r, message=FALSE}
 
@@ -131,20 +131,17 @@ print(ohio_plot)
 
 ```
 
-Through this plot, I pay particular attention to voting patterns throughout the time 
-since the incumbent, Steve Chabot, took office. As you can see, the district has 
-been red the majority of the time, with incumbent Republicans doing especially well.
+Through these plots, I pay particular attention to voting pattern since the incumbent, Steve Chabot, took office. As you can see, the district has been red the majority of the time, with incumbent Republicans doing especially well.
 
 Steve Chabot first took office in 1994 and has been reelected every year but 2008. 
 This could've been because of the Great Recession and overall discontent with the 
 Republican party. While Chabot's popularity was rising throughout the mid 2010's,
-it appears to have taken a hit with his winning margin only around .05 throughout the last 4 years. Another noteworthy element: I removed the data from 1992 where a Democrat (David Mann) ran uncontested and won because it was enlarging the y-axis too much. 
-Mann ended up losing to Steve Chabot in 1994 by a sizable margin of 0.1. 
+it appears to have taken a hit with his winning margin only around .05 throughout the last 4 years. Another noteworthy element: I removed the data from 1992 where a Democrat (David Mann) ran uncontested and won because it was enlarging the y-axis too much. Mann ended up losing to Steve Chabot in 1994 by a sizable margin of 0.1. 
 
 
 *Conclusion*
 
-In my first blog post, I analyzed differences in state-wide house voting by 
+In this first blog post, I analyzed differences in state-wide house voting by 
 two and four year intervals. While many battleground states remain in place like
 Florida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
 appear to be leaning more one party than earlier. 
