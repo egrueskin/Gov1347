@@ -1,7 +1,7 @@
 ---
-title: 'Blog Post #1'
+title: 'Blog Post #1 - Introduction '
 author: "Ellie Grueskin"
-date: "2022-09-10"
+date: "2022-09-14"
 output:
   pdf_document: default
   html_document: default
@@ -11,9 +11,28 @@ summary: Hey! I'm Ellie Grueskin, a senior.
 tags: []
 ---
 
-In this blog post, I focus on the third extension project: an extension of the
-swing state map. The plot below shows each state's four-year
-difference in Republican vote margin, starting with 1952 because the dataset only started in 1948.
+*Intro* 
+
+Hello! My name is Ellie Grueskin, and I am a senior at Harvard College studying 
+Economics. I will be logging my work in Government 1347: Election 
+Analytics, taught by Ryan Enos, throughout the semester. In this introductory post, 
+I analyze the popular vote shares in US House races over the last 70
+years. At the end, I will also begin exploring my specific house race: Ohio-01.
+
+*Data*
+
+My dataset is a collection of the vote data for each house election, dating
+back to 1948. Each observation contains the congressional district's name, state, candidates, and respective votes for each election. As well, it gives information as to whether
+the candidate was an incumbent or challenger. In this analysis, I reformat the data
+to exclude independent and write-in candidates, such that the 'vote share' margin is  
+calculated as the number of Democratic or Republican votes divided by the sum of 
+their votes. 
+
+*Results - Swing States over Time* 
+
+In my first plot, I examine the four-year change in share of a state's housewide popular votes that went to Republicans. I start with 1952 because the dataset only started in 1948. To clarify, a Republican vote margin above 50% means that Republicans received the majority 
+of the popular vote in the state during that year. This does not necessarily translate 
+to house seats, as districts are not divided evenly across state's party divisions.
 
 
 ```{r setup, include=FALSE}
@@ -38,7 +57,6 @@ D_votemargin_st = (sum(DemVotes))/
 sum(RepVotes + DemVotes)) %>%
 rename(state = State)
 
-# code na if uncontested
 h_avg_2<-h_avg %>%
   group_by(state) %>%
   #Lag by 4 years or 2 observations
@@ -50,45 +68,91 @@ p_4yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1950), regions = "states", val
   facet_wrap(~raceYear) +
   scale_fill_gradient2(low = "blue", mid="white",high = "red", 
   name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
- subtitle='Red=More Republican, Blue=More Democrat, Gray=uncontested/unavailable')+
+ subtitle='Red=More Republican, Blue=More Democrat, Gray=No Data')+
   theme(legend.position="right")+
   theme_void()
 
 print(p_4yr)
+```
+
+As this map shows, there can be substantial variation in state-wide House 
+popular vote share over years. Most of the largest variations (or darkest colors)
+occur in the lower-populated states with fewer representatives, particularly when
+at least one race is uncontested.
+
+I found it interesting how a number of Midwest states like Iowa, Missouri appeared
+to be battleground states until about 2010, at which point they turned red and haven't
+switched since. On the other hand, states slightly north like Michigan, Wisconsin,
+Pennsylvania, and Minnesota appear to have stayed as battleground states in spite
+of demographic and polarization changes. 
+
+Next, I plotted the two year differences by state because our interest this year
+is in predicting a midterm year. 
+
+```{r, message=FALSE}
 
 # 4- year differences
 p_2yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1948), regions = "states", values = "diff_2yr")+
   facet_wrap(~raceYear) +
   scale_fill_gradient2(low = "blue", mid="white",high = "red", 
   name = "Difference Scale")+labs(title='Difference in GOP 2-yr voteshare margin',
- subtitle='Red=More Republican, Blue=More Democrat, Gray=uncontested/unavailable')+
+ subtitle='Red=More Republican, Blue=More Democrat, Gray=No data')+
   theme(legend.position="right")+
   theme_void()
 
 print(p_2yr)
-# 
-#   mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
-#   mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
-#          R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
-    
+```
+
+Similar to the earlier plot, the figure above shows that Democrats are losing
+some of the Midwestern states while picking up some of the Southeast and Southwest.
+Many of these states would still be considered battleground, but if patterns persist, 
+it's likely that they would move to the 'lean/solid' category. 
+
+I found it particularly interesting how a few recent midterm elections - 1994,
+2010, 2014, and 2018- were associated with significant declines in the incumbent's
+party's overall popular vote in house races by state. Similarly, I thought it was
+noteworthy that the overall range in differences was much smaller for this plot. 
+I believe this illustrates how an incumbent can often become popular after their
+first term, and therefore capture even more of their vote in subsequent elections. 
+
+*Results-Ohio*
+
+Next, I looked at the specific district I'll be following - Ohio 01 - over time.
+
+```{r, message=FALSE}
+
 OH01<-h %>% filter(district_id=='OH01')%>%
-  mutate(midterm=ifelse(raceYear%%4,0,1),
-         Majority=ifelse(R_vote_margin>0,'Republican','Democratic'))
-p<-ggplot(data=OH01%>% filter(R_vote_margin>-.5),aes(x=raceYear,y=R_vote_margin, shape=WinnerParty,color=WinnerParty))+geom_point()+
+  mutate(midterm=ifelse(raceYear%%4,0,1))
+ohio_plot<-ggplot(data=OH01%>% filter(R_vote_margin>-.5),aes(x=raceYear,y=R_vote_margin, shape=WinnerParty,color=WinnerParty))+geom_point()+
   geom_textvline(label = "Steve Chabot enters", xintercept = 1994, vjust = -.4,linetype=2,color='red',size=3) +  facet_wrap(~RepStatus)+
   scale_color_manual(values=c("Blue","Red"))+
   ggtitle('Republican Vote Margin in OH-01 by Year and \nStatus of Republican Candidate (Challenger or Incumbent)')
-
-p<-ggplot(data=OH01)+geom_line(aes(x=raceYear,y=R_vote_margin,color=factor(midterm),
-                                   group=midterm))
-
-
-                       #i) +
+print(ohio_plot)
 
 ```
 
+Through this plot, I pay particular attention to voting patterns throughout the time 
+since the incumbent, Steve Chabot, took office. As you can see, the district has 
+been red the majority of the time, with incumbent Republicans doing especially well.
+
+Steve Chabot first took office in 1994 and has only lost once since in 2008. 
+This could've been because of the Great Recession and overall discontent with the 
+Republican party. While Chabot's popuularity was rising throughout the mid 2010's,
+it appears to have taken a hit with his winning margin only around .5 throughout the last
+4 years. 
+
+
+*Conclusion*
+
+IN my first blog post, I analyzed differences in state-wide house voting by 
+two and four year intervals. While many battleground states remain in place like
+FLorida, Michigan, Wisconsin, some of the other states in the Midwest and Southwest
+appear to be leaning more one party than earlier. 
+
+I look forward to updating this blog and diving deeper into the Ohio-01 district race. 
+
 Visualization
-```{r, message=FALSE}
+```{r, message=FALSE, echo=FALSE}
 plot_usmap(data = h_avg%>% filter(raceYear==1988), regions = "states", values = "R_votemargin_st") +
   scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "R Vote Margin, 1988") +
   theme_void()
@@ -144,24 +208,29 @@ R_2 <- h %>%
 #     nudge_x = 0.25, nudge_y = 0.25, 
 #     check_overlap = T
 #   )
+# 
+#   mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
+#   mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
+#          R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
+    
 ```
 
 ```{r}
 
-# keep uncontested values
-h_avg_st<-h_avg %>%
-  group_by(state) %>%
-  #Lag by 4 years or 2 observations
-  mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
-
-
-p<-plot_usmap(data=h_avg_st%>% filter(raceYear>1950), regions = "states", values = "diff")+
-  facet_wrap(~raceYear) +
-  scale_fill_gradient2(low = "blue", mid="white",high = "red", 
-  name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
- subtitle='Red=More Republican, Blue=More Democrat, Gray=unavailable')+
-  theme(legend.position="right")+
-  theme_void()
+# # keep uncontested values
+# h_avg_st<-h_avg %>%
+#   group_by(state) %>%
+#   #Lag by 4 years or 2 observations
+#   mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
+# 
+# 
+# p<-plot_usmap(data=h_avg_st%>% filter(raceYear>1950), regions = "states", values = "diff")+
+#   facet_wrap(~raceYear) +
+#   scale_fill_gradient2(low = "blue", mid="white",high = "red", 
+#   name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
+#  subtitle='Red=More Republican, Blue=More Democrat, Gray=unavailable')+
+#   theme(legend.position="right")+
+#   theme_void()
 
 ```
 
