@@ -10,13 +10,17 @@ categories: []
 tags: []
 ---
 
-In this blog post, I focus on the third extension project: Swing state map
-Extension Swing State
+In this blog post, I focus on the third extension project: an extension of the
+swing state map. The plot below shows each state's four-year
+difference in Republican vote margin, starting with 1952 because the dataset only started in 1948.
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 h<-read.csv("Week1_data/house party vote share by district 1948-2020.csv")
 library(tidyverse)
 library(usmap)
+library(geomtextpath)
 ```
 
 ```{r, message=FALSE}
@@ -39,18 +43,31 @@ h_avg_2<-h_avg %>%
   mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
   mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
          R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
+  #Lag by 4 years or 2 observations
   mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
 
 
-p<-plot_usmap(data=h_avg_2%>% filter(raceYear>1950), regions = "states", values = "diff") +
+p<-plot_usmap(data=h_avg_2%>% filter(raceYear>1950), regions = "states", values = "diff")+
   facet_wrap(~raceYear) +
-  scale_fill_gradient2(low = "blue", mid="white",high = "red", name = "Diff")+
+  scale_fill_gradient2(low = "blue", mid="white",high = "red", 
+  name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
+ subtitle='Red=More Republican, Blue=More Democrat, Gray=uncontested/unavailable')+
+  theme(legend.position="right")+
   theme_void()
-p$layers[[2]]$aes_params$size <- 2
-print(p)
+
+OH01<-h %>% filter(district_id=='OH01')%>%
+  mutate(midterm=ifelse(raceYear%%4,0,1),
+         Majority=ifelse(R_vote_margin>0,'Republican','Democratic'))
+p<-ggplot(data=OH01%>% filter(R_vote_margin>-.5),aes(x=raceYear,y=R_vote_margin, shape=WinnerParty,color=WinnerParty))+geom_point()+
+  geom_textvline(label = "Steve Chabot enters", xintercept = 1994, vjust = -.4,linetype=2,color='red',size=3) +  facet_wrap(~RepStatus)+
+  scale_color_manual(values=c("Blue","Red"))+
+  ggtitle('Republican Vote Margin in OH-01 by Year and \nStatus of Republican Candidate (Challenger or Incumbent)')
+
+p<-ggplot(data=OH01)+geom_line(aes(x=raceYear,y=R_vote_margin,color=factor(midterm),
+                                   group=midterm))
 
 
-                       #in GOP  4-yr \n voteshare margin\n gray means uncontested or not available") +
+                       #i) +
 
 ```
 
@@ -111,5 +128,24 @@ R_2 <- h %>%
 #     nudge_x = 0.25, nudge_y = 0.25, 
 #     check_overlap = T
 #   )
+```
+
+```{r}
+
+# keep uncontested values
+h_avg_st<-h_avg %>%
+  group_by(state) %>%
+  #Lag by 4 years or 2 observations
+  mutate(diff = R_votemargin_st-lag(R_votemargin_st,2))
+
+
+p<-plot_usmap(data=h_avg_st%>% filter(raceYear>1950), regions = "states", values = "diff")+
+  facet_wrap(~raceYear) +
+  scale_fill_gradient2(low = "blue", mid="white",high = "red", 
+  name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
+ subtitle='Red=More Republican, Blue=More Democrat, Gray=unavailable')+
+  theme(legend.position="right")+
+  theme_void()
+
 ```
 
