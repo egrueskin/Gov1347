@@ -66,10 +66,10 @@ p_2yr<-plot_usmap(data=h_avg_2%>% filter(raceYear>1948), regions = "states", val
   theme_void()
 
 print(p_2yr)
-
-  mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
-  mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
-         R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
+# 
+#   mutate(uncontested=ifelse(R_votemargin_st==1|D_votemargin_st==1,1,0))%>%
+#   mutate(R_votemargin_st=na_if(R_votemargin_st, 0),
+#          R_votemargin_st=na_if(R_votemargin_st, 1)) %>%
     
 OH01<-h %>% filter(district_id=='OH01')%>%
   mutate(midterm=ifelse(raceYear%%4,0,1),
