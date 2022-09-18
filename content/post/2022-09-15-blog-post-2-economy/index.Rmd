@@ -21,7 +21,7 @@ I use three datasets: Unemployment by state, popular voting by house, and a nati
 dataset with incumbent information
 National: unemployment nationally and voting by house nationally
 
-```{r setup, include=FALSE}}
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
@@ -74,13 +74,16 @@ train<-dat_clean %>% filter(Year<2000)
 test<-dat_clean %>% filter(Year>2000)
 ```
 
-```{r setup, mesasge=FALSE}}
+```{r setup, message=FALSE}
 lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
 summary(lm1)
 test$predict<-predict(lm1,test)
 list(BIC(lm1),summary(lm1)$r.squared)
 stargazer(lm1)
 
+```
+
+```{r setup, message=FALSE}
 test_pre22<-test %>% filter(Year<2022)%>% mutate(
   error=predict-R_votemargin_st
 )
