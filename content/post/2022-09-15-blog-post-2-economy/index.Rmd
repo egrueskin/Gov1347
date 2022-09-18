@@ -74,7 +74,7 @@ train<-dat_clean %>% filter(Year<2000)
 test<-dat_clean %>% filter(Year>2000)
 ```
 
-```{r setup, message=FALSE}
+```{r lm, message=FALSE}
 lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
 summary(lm1)
 test$predict<-predict(lm1,test)
@@ -83,7 +83,7 @@ stargazer(lm1)
 
 ```
 
-```{r setup, message=FALSE}
+```{r test, message=FALSE}
 test_pre22<-test %>% filter(Year<2022)%>% mutate(
   error=predict-R_votemargin_st
 )
