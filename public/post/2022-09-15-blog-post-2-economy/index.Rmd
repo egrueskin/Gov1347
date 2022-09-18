@@ -1,0 +1,167 @@
+---
+title: 'Blog Post #2 - Economy'
+author: Ellie Grueskin
+date: '2022-09-15'
+output:
+  html_document: default
+  pdf_document: default
+slug: []
+categories: []
+summary: In this post, I look at the relationship between economic forces and house voting patterns.
+tags: []
+---
+
+```{r unemployment}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(stargazer)
+
+# Read state unemployment and house data 
+unemp<-read.csv("data/unemployment_state_monthly.csv")
+h_seat<-read.csv("data/house_popvote_seats.csv")%>% select(year,president_party)%>%
+  mutate(Incumbent_Pres=lag(president_party))
+
+# Read and reformat house popular vote
+h_vote<-read.csv("data/house party vote share by district 1948-2020.csv")%>%
+  select(raceYear, State,  RepVotes, DemVotes) %>%
+# summarize party vote share by state
+  group_by(State,raceYear) %>%
+# mutate Rep vote margin by state %>%
+  summarise(R_votemargin_st = (sum(RepVotes))/
+           sum(RepVotes + DemVotes),
+D_votemargin_st = (sum(DemVotes))/
+sum(RepVotes + DemVotes)) %>%
+rename(state = State)
+
+# Clean Unemployment data
+unemp_2 <- unemp %>% 
+  filter(!(FIPS.Code%in% c(11,51000)|State.and.area=='Los Angeles County'))%>% 
+  mutate(ElectionYear=ifelse(Year%%2,0,1))%>%
+  filter(ElectionYear==1)%>%
+  filter(Month==10|(Month==5 & Year==2022))%>%
+  rename('state'='State.and.area')
+
+#Join datasets together
+dat<-left_join(unemp_2,h_vote,by=c('Year'='raceYear','state'))%>%
+  filter(!R_votemargin_st%in% c(0,1))%>%
+  mutate(state=factor(state))
+dat<-left_join(dat,h_seat,by=c('Year'='year'))
+
+# Clean data
+dat_clean<-dat %>% group_by(state)%>%
+  # Add lag variable and calculate Employment rate differences
+  mutate(lag_R_vote=lag(R_votemargin_st),
+         Unemp_rate=Unemployed/(Unemployed+Employed),
+         Unemp_diff=(Unemp_rate-lag(Unemp_rate)))
+
+  # Add 2022 president party  
+         # president_party=case_when(is.na(president_party)~'D',
+         #             TRUE~president_party))
+
+# Assign training and testing datasets
+train<-dat_clean %>% filter(Year<2000)
+test<-dat_clean %>% filter(Year>2000)
+
+lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
+summary(lm1)
+test$predict<-predict(lm1,test)
+list(BIC(lm1),summary(lm1)$r.squared)
+
+
+test_pre22<-test %>% filter(Year<2022)%>% mutate(
+  error=predict-R_votemargin_st
+)
+ggplot(test_pre22,aes(x=R_votemargin_st,y=predict))+geom_point()
+ggplot(test_pre22,aes(x=Year,y=error,color=factor(Incumbent_Pres)))+geom_point()
+library(usmap)
+plot_usmap(data=test_pre22,regions='states',values='error')+facet_wrap(~Year)+
+ scale_fill_gradient2(low = "red", mid="white",high = "blue", 
+  name = "Difference Scale")+labs(title='Difference between Predictions and Acutal Values',
+ subtitle='Blue=Results were more Republican than Predicted, Red=Results were more Republican than Predicted')+
+  theme(legend.position="right")
+
+mean((test_pre22$predict-test_pre22$R_votemargin_st)^2)
+mse_g <- mean((lm1$model$R_votemargin_st-lm1$fitted.values)^2)
+
+unemp_nat<-read.csv("data/unemployment_national_quarterly_final.csv")
+unemp_nat<-unemp_nat %>% 
+  filter(quarter_cycle==3|(quarter_cycle==2 & year==2022))
+
+h_seat<-read.csv("data/house_popvote_seats.csv")
+
+nat_vote<-h_seat%>%
+  select(year,  R_votes, D_votes,president_party) %>%
+# summarize party vote share by state
+  group_by(year,president_party) %>%
+# mutate Rep vote margin by state %>%
+  summarise(R_votemargin = R_votes/(R_votes+D_votes))
+joined_nat<-inner_join(nat_vote,unemp_nat,by='year')%>%
+  mutate(lag=lag(R_votemargin),
+         Unemp_diff=(UNRATE-lag(UNRATE)))
+dat_nat<-inner_join(unemp_nat,nat_vote,by='year')
+dat_nat<-dat_nat%>%
+  mutate(lag_R_vote=lag(R_votemargin),
+         Unemp_diff=(UNRATE-lag(UNRATE))/lag(UNRATE))
+
+# Set train and test datasets
+train<-dat_nat %>% filter(year<2000)
+test<-dat_nat %>% filter(year>=2000)
+
+# Run regression and add predictions to test dataset
+lm1<-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(president_party),data=train)
+test$predict<-predict(lm1,test)
+
+# See how well predictions fared in previous years
+test_pre22<-test %>% filter(year<2022)
+MSE<-mean((test_pre22$predict-test_pre22$R_votemargin)^2)
+list(MSE,BIC(lm1),lm1$model$R.squared)
+
+
+# Visualization
+ggplot(test_pre22,aes(x=R_votemargin,y=predict))+geom_point()
+
+
+
+
+ggplot(data=dat%>% filter(!(R_votemargin_st%in% c(0,1))),
+       aes(x=Unemployed_prct,y=R_votemargin_st))+geom_smooth()+facet_wrap(~state)
+
+library(usmap)
+# plot_usmap(data=test,regions='states',values='predict')+
+#  scale_fill_gradient2(low = "blue", mid="white",high = "red", 
+#   name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
+#  subtitle='Red=Results were more Republican than Expected, Blue=More Democrat than Expected, Gray=No Data')+
+#   theme(legend.position="right")
+  
+```
+
+
+# Extra 
+```{r, include=FALSE}
+
+unemp<-read.csv("data/unemployment_national_quarterly_final.csv")
+house_vote<-read.csv("data/house_popvote_seats.csv")
+RDI<-read.csv("data/RDI_quarterly.csv")%>% filter(quarter_cycle==7)%>%
+  mutate(diff=(DSPIC_qt-lag(DSPIC_qt))/lag(DSPIC_qt))
+CPI<-read.csv("data/CPI_monthly.csv")%>% mutate(date=as_date(DATE))%>%
+  filter(month(date)==10&year(date)%%2)
+
+unemp_2<-unemp %>% 
+  filter(quarter_cycle==3)
+dat<-inner_join(unemp_2,house_vote,by='year')
+dat<-inner_join(dat,RDI,by='year')
+
+dat<-dat%>%
+  mutate(R_seatshare=R_seats/(R_seats+D_seats),
+         D_seatshare=D_seats/(R_seats+D_seats))%>%
+    mutate(Incumbent_vote=ifelse(H_incumbent_party=='R',R_majorvote_pct,D_majorvote_pct),
+         Incumbent_share=ifelse(H_incumbent_party=='R',R_seatshare,D_seatshare))
+
+ggplot(data=dat,aes(x=diff,y=H_incumbent_party_majorvote_pct,col=H_incumbent_party))+geom_point()+facet_wrap(~H_incumbent_party)
+ggplot(data=dat,aes(x=UNRATE,y=Incumbent_share))+geom_point()+facet_wrap(~H_incumbent_party)
+
+lm1<-lm(H_incumbent_party_majorvote_pct~DSPIC_change_pct+factor(H_incumbent_party),data=dat)
+
+```
+

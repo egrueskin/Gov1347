@@ -1,0 +1,192 @@
+---
+title: 'Blog Post #2 - Economy'
+author: Ellie Grueskin
+date: '2022-09-15'
+output:
+  html_document: default
+  pdf_document: default
+slug: []
+categories: []
+summary: In this post, I look at the relationship between economic forces and house voting patterns.
+tags: []
+---
+
+
+
+<pre class="r"><code>knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 3.3.6     ✔ purrr   0.3.4
+## ✔ tibble  3.1.7     ✔ dplyr   1.0.9
+## ✔ tidyr   1.2.0     ✔ stringr 1.4.0
+## ✔ readr   2.1.2     ✔ forcats 0.5.1</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(lubridate)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;lubridate&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     date, intersect, setdiff, union</code></pre>
+<pre class="r"><code>library(stargazer)</code></pre>
+<pre><code>## 
+## Please cite as:</code></pre>
+<pre><code>##  Hlavac, Marek (2022). stargazer: Well-Formatted Regression and Summary Statistics Tables.</code></pre>
+<pre><code>##  R package version 5.2.3. https://CRAN.R-project.org/package=stargazer</code></pre>
+<pre class="r"><code># Read state unemployment and house data 
+unemp&lt;-read.csv(&quot;data/unemployment_state_monthly.csv&quot;)
+h_seat&lt;-read.csv(&quot;data/house_popvote_seats.csv&quot;)%&gt;% select(year,president_party)%&gt;%
+  mutate(Incumbent_Pres=lag(president_party))
+
+# Read and reformat house popular vote
+h_vote&lt;-read.csv(&quot;data/house party vote share by district 1948-2020.csv&quot;)%&gt;%
+  select(raceYear, State,  RepVotes, DemVotes) %&gt;%
+# summarize party vote share by state
+  group_by(State,raceYear) %&gt;%
+# mutate Rep vote margin by state %&gt;%
+  summarise(R_votemargin_st = (sum(RepVotes))/
+           sum(RepVotes + DemVotes),
+D_votemargin_st = (sum(DemVotes))/
+sum(RepVotes + DemVotes)) %&gt;%
+rename(state = State)</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;State&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<pre class="r"><code># Clean Unemployment data
+unemp_2 &lt;- unemp %&gt;% 
+  filter(!(FIPS.Code%in% c(11,51000)|State.and.area==&#39;Los Angeles County&#39;))%&gt;% 
+  mutate(ElectionYear=ifelse(Year%%2,0,1))%&gt;%
+  filter(ElectionYear==1)%&gt;%
+  filter(Month==10|(Month==5 &amp; Year==2022))%&gt;%
+  rename(&#39;state&#39;=&#39;State.and.area&#39;)
+
+#Join datasets together
+dat&lt;-left_join(unemp_2,h_vote,by=c(&#39;Year&#39;=&#39;raceYear&#39;,&#39;state&#39;))%&gt;%
+  filter(!R_votemargin_st%in% c(0,1))%&gt;%
+  mutate(state=factor(state))
+dat&lt;-left_join(dat,h_seat,by=c(&#39;Year&#39;=&#39;year&#39;))
+
+# Clean data
+dat_clean&lt;-dat %&gt;% group_by(state)%&gt;%
+  # Add lag variable and calculate Employment rate differences
+  mutate(lag_R_vote=lag(R_votemargin_st),
+         Unemp_rate=Unemployed/(Unemployed+Employed),
+         Unemp_diff=(Unemp_rate-lag(Unemp_rate)))
+
+  # Add 2022 president party  
+         # president_party=case_when(is.na(president_party)~&#39;D&#39;,
+         #             TRUE~president_party))
+
+# Assign training and testing datasets
+train&lt;-dat_clean %&gt;% filter(Year&lt;2000)
+test&lt;-dat_clean %&gt;% filter(Year&gt;2000)
+
+lm1&lt;-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
+summary(lm1)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = R_votemargin_st ~ lag_R_vote + Unemp_diff * factor(Incumbent_Pres), 
+##     data = train)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.27005 -0.03950  0.00094  0.03709  0.36266 
+## 
+## Coefficients:
+##                                     Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)                         0.128257   0.013834   9.271  &lt; 2e-16 ***
+## lag_R_vote                          0.783382   0.026649  29.396  &lt; 2e-16 ***
+## Unemp_diff                          0.141888   0.300319   0.472   0.6368    
+## factor(Incumbent_Pres)R            -0.030615   0.006322  -4.843 1.68e-06 ***
+## Unemp_diff:factor(Incumbent_Pres)R -0.702163   0.359724  -1.952   0.0515 .  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.0716 on 540 degrees of freedom
+##   (50 observations deleted due to missingness)
+## Multiple R-squared:  0.6278, Adjusted R-squared:  0.6251 
+## F-statistic: 227.7 on 4 and 540 DF,  p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>test$predict&lt;-predict(lm1,test)
+list(BIC(lm1),summary(lm1)$r.squared)</code></pre>
+<pre><code>## [[1]]
+## [1] -1294.577
+## 
+## [[2]]
+## [1] 0.627831</code></pre>
+<pre class="r"><code>test_pre22&lt;-test %&gt;% filter(Year&lt;2022)%&gt;% mutate(
+  error=predict-R_votemargin_st
+)
+ggplot(test_pre22,aes(x=R_votemargin_st,y=predict))+geom_point()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unemployment-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(test_pre22,aes(x=Year,y=error,color=factor(Incumbent_Pres)))+geom_point()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unemployment-2.png" width="672" /></p>
+<pre class="r"><code>library(usmap)
+plot_usmap(data=test_pre22,regions=&#39;states&#39;,values=&#39;error&#39;)+facet_wrap(~Year)+
+ scale_fill_gradient2(low = &quot;red&quot;, mid=&quot;white&quot;,high = &quot;blue&quot;, 
+  name = &quot;Difference Scale&quot;)+labs(title=&#39;Difference between Predictions and Acutal Values&#39;,
+ subtitle=&#39;Blue=Results were more Republican than Predicted, Red=Results were more Republican than Predicted&#39;)+
+  theme(legend.position=&quot;right&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unemployment-3.png" width="672" /></p>
+<pre class="r"><code>mean((test_pre22$predict-test_pre22$R_votemargin_st)^2)</code></pre>
+<pre><code>## [1] 0.004541988</code></pre>
+<pre class="r"><code>mse_g &lt;- mean((lm1$model$R_votemargin_st-lm1$fitted.values)^2)
+
+unemp_nat&lt;-read.csv(&quot;data/unemployment_national_quarterly_final.csv&quot;)
+unemp_nat&lt;-unemp_nat %&gt;% 
+  filter(quarter_cycle==3|(quarter_cycle==2 &amp; year==2022))
+
+h_seat&lt;-read.csv(&quot;data/house_popvote_seats.csv&quot;)
+
+nat_vote&lt;-h_seat%&gt;%
+  select(year,  R_votes, D_votes,president_party) %&gt;%
+# summarize party vote share by state
+  group_by(year,president_party) %&gt;%
+# mutate Rep vote margin by state %&gt;%
+  summarise(R_votemargin = R_votes/(R_votes+D_votes))</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;year&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<pre class="r"><code>joined_nat&lt;-inner_join(nat_vote,unemp_nat,by=&#39;year&#39;)%&gt;%
+  mutate(lag=lag(R_votemargin),
+         Unemp_diff=(UNRATE-lag(UNRATE)))
+dat_nat&lt;-inner_join(unemp_nat,nat_vote,by=&#39;year&#39;)
+dat_nat&lt;-dat_nat%&gt;%
+  mutate(lag_R_vote=lag(R_votemargin),
+         Unemp_diff=(UNRATE-lag(UNRATE))/lag(UNRATE))
+
+# Set train and test datasets
+train&lt;-dat_nat %&gt;% filter(year&lt;2000)
+test&lt;-dat_nat %&gt;% filter(year&gt;=2000)
+
+# Run regression and add predictions to test dataset
+lm1&lt;-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(president_party),data=train)
+test$predict&lt;-predict(lm1,test)
+
+# See how well predictions fared in previous years
+test_pre22&lt;-test %&gt;% filter(year&lt;2022)
+MSE&lt;-mean((test_pre22$predict-test_pre22$R_votemargin)^2)
+list(MSE,BIC(lm1),lm1$model$R.squared)</code></pre>
+<pre><code>## [[1]]
+## [1] 0.001430461
+## 
+## [[2]]
+## [1] -95.37773
+## 
+## [[3]]
+## NULL</code></pre>
+<pre class="r"><code># Visualization
+ggplot(test_pre22,aes(x=R_votemargin,y=predict))+geom_point()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unemployment-4.png" width="672" /></p>
+<pre class="r"><code>ggplot(data=dat%&gt;% filter(!(R_votemargin_st%in% c(0,1))),
+       aes(x=Unemployed_prct,y=R_votemargin_st))+geom_smooth()+facet_wrap(~state)</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: Removed 50 rows containing non-finite values (stat_smooth).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unemployment-5.png" width="672" /></p>
+<pre class="r"><code>library(usmap)
+# plot_usmap(data=test,regions=&#39;states&#39;,values=&#39;predict&#39;)+
+#  scale_fill_gradient2(low = &quot;blue&quot;, mid=&quot;white&quot;,high = &quot;red&quot;, 
+#   name = &quot;Difference Scale&quot;)+labs(title=&#39;Difference in GOP 4-yr voteshare margin&#39;,
+#  subtitle=&#39;Red=Results were more Republican than Expected, Blue=More Democrat than Expected, Gray=No Data&#39;)+
+#   theme(legend.position=&quot;right&quot;)</code></pre>
+<div id="extra" class="section level1">
+<h1>Extra</h1>
+</div>
