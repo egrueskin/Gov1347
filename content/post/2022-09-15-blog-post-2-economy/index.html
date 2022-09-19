@@ -13,7 +13,7 @@ tags: []
 
 
 
-<p><em>Intro</em></p>
+<p>#Intro</p>
 <p>In this blog post (Extension #3), I am examining how unemployment rates and labor force
 participation rates affect voting patterns for House races in the United States at the state level.
 I chose to model my outcome variable as the popular vote for House races by state,
@@ -25,16 +25,12 @@ dataset with presidential incumbent information. I restricted the economic data 
 be in the 3rd quarter so it was the most recent for elections.
 To compare local to national data, I built a national dataset of nationwide employment
 and house voting.</p>
-<p><em>Exploratory Plots</em>
-Using 595 data points (every house election until this point), I look at trends
+<div id="exploratory-plots" class="section level1">
+<h1>Exploratory Plots</h1>
+<p>Using every state*election year from 1976-now, I look at trends
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates.</p>
-<pre><code>## Warning: Removed 50 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-1.png" width="672" /></p>
-<pre><code>## Warning: Removed 50 rows containing non-finite values (stat_smooth).
-## Removed 50 rows containing missing values (geom_point).</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-2.png" width="672" />
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-2.png" width="672" />
 As these graphs show, there is not a obvious trend in any direction between these two
 economic measures and Republican vote share by state.
 For the times where the incumbent presidnet was Republican, I expected there to be a positive relationship between labor force participation rate (LFPR) and Republican vote share along with a negative relationship between unemployment rate changes and Republican vote share. If the incumbent president was Democratic, I expected those relationships in inverse.
@@ -138,6 +134,7 @@ However, to fully analyze the modeltake much more time and research to fully ana
 <p>Additionally, at the very bottom, I printed out the MSE for each local model. This shows
 that including the lagged Republican vote share significantly reduces error,
 however it may be susceptible to overfitting in the long term.</p>
+</div>
 <div id="ohio-01-race" class="section level1">
 <h1>Ohio-01 Race</h1>
 <p>Finally, I looked at my congressional race- Ohio 01. Since this dataset is very small,
@@ -147,5 +144,21 @@ into the economic landscape and voting patterns in the district.</p>
 </div>
 <div id="predictions" class="section level1">
 <h1>2022 Predictions</h1>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/predictions-1.png" width="672" /></p>
+<p>To end my blog, I plotted my predictions for house vote share by state in 2022, using model #1.
+<img src="{{< blogdown/postref >}}index_files/figure-html/predictions-1.png" width="672" /></p>
+</div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>In this blog post, I explored the relationships between unemployment rate/
+labor force participation rate and voting at the state level, and found very little
+significance of a clear correlation. Hence, this project would require further delving into
+to see whether more nuanced models would detect a clear relationship or if
+the employment part of the economy is not what voters focus on.</p>
+<p>My regressions did however show that voting is very serially correlated -
+districts have a strong correlation from year to year. Additionally, the incumbent
+president plays a negative role, on average, particularly during midterm years.</p>
+<p>Looking forward to 2022, this project is very relevant. Biden’s economy has been
+known for strong job growth but also overwhelming inflation. So, the economic
+measures we use to model outcomes are not necessarily substitutable and may
+have grand implications for house popular vote/seat share.</p>
 </div>

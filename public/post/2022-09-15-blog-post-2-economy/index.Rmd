@@ -10,7 +10,7 @@ categories: []
 summary: In this post, I look at the relationship between economic forces and US house voting patterns. As a fundamental part of the campaign environment, the a strong economy can help an incumbent president maintain power in other chambers while a gloomy economy can make the case harder for incumbents.
 tags: []
 ---
-*Intro*
+#Intro
 
 In this blog post (Extension #3), I  am examining how unemployment rates and labor force
 participation rates affect voting patterns for House races in the United States at the state level.
@@ -90,12 +90,12 @@ train<-dat_clean %>% filter(Year<2000)
 test<-dat_clean %>% filter(Year>2000)
 ```
 
-*Exploratory Plots* 
-Using 595 data points (every house election until this point), I look at trends 
+# Exploratory Plots
+Using every state*election year from 1976-now, I look at trends 
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates.
 
-```{r Exploratory plots,message=FALSE}
+```{r Exploratory plots,message=FALSE,warning=FALSE}
 unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
        aes(x=Unemp_diff,y=R_votemargin_st,col=Incumbent_Pres))+
   geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+ scale_color_manual(values=c("Blue","Red"))+
@@ -300,6 +300,7 @@ ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,col=
 
 # 2022 Predictions
 
+To end my blog, I plotted my predictions for house vote share by state in 2022, using model #1.
 ```{r predictions, message=FALSE}
 test<- test %>% mutate(Incumbent_Pres=case_when(
                        Year==2022~'D',
@@ -309,3 +310,20 @@ test$predict<-predict(lm1,test)
 plot_usmap(data=test %>% filter(Year==2022),regions='states',values='predict')+
  scale_fill_gradient2(low = "blue",high = "red")+labs(title='Predictions for 2022 Republican Vote Share by state')
 ```
+
+# Conclusion
+
+In this blog post, I explored the relationships between unemployment rate/ 
+labor force participation rate and voting at the state level, and found very little 
+significance of a clear correlation. Hence, this project would require further delving into
+to see whether more nuanced models would detect a clear relationship or if 
+the employment part of the economy is not what voters focus on.
+
+My regressions did however show that voting is very serially correlated - 
+districts have a strong correlation from year to year. Additionally, the incumbent
+president plays a negative role, on average, particularly during midterm years.
+
+Looking forward to 2022, this project is very relevant. Biden's economy has been
+known for strong job growth but also overwhelming inflation. So, the economic 
+measures we use to model outcomes are not necessarily substitutable and may
+have grand implications for house popular vote/seat share.
