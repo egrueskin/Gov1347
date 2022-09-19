@@ -97,6 +97,9 @@ test<-dat_clean %>% filter(Year>2000)
 Using every state*election year from 1976-now, I look at trends 
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates between the past and current election.
+I measure unemployment difference as state's unemployment rate in current election-
+state's unemployment rate in past election. Similarly, I measure LFPR difference as
+state's LFPR in current election - state's LFPR in past election.
 
 ```{r Exploratory plots,message=FALSE,warning=FALSE}
 unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
@@ -333,7 +336,7 @@ to see whether more nuanced models would detect a clear relationship or if
 the employment part of the economy is not what voters focus on.
 
 My regressions did however show that voting is very serially correlated - 
-districts have a strong correlation from year to year. Additionally, the incumbent
+states have a strong correlation from year to year. Additionally, the incumbent
 president plays a negative role, on average, particularly during midterm years.
 
 Looking forward to 2022, this project is very relevant. Biden's economy has been

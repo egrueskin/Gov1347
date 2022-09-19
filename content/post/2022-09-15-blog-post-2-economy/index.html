@@ -33,7 +33,10 @@ and house voting.</p>
 <h1>Exploratory Plots</h1>
 <p>Using every state*election year from 1976-now, I look at trends
 for examining the state-wide Republican voteshare by differences in labor force
-participation rate or unemployment rates between the past and current election.</p>
+participation rate or unemployment rates between the past and current election.
+I measure unemployment difference as state’s unemployment rate in current election-
+state’s unemployment rate in past election. Similarly, I measure LFPR difference as
+state’s LFPR in current election - state’s LFPR in past election.</p>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/Exploratory%20plots-2.png" width="672" />
 As these graphs show, there is not a obvious trend in any direction between these two
 economic measures and Republican vote share by state.
@@ -109,11 +112,11 @@ expected to decrease if it is the same party as the incumbent, even holding
 constant state’s voting patterns. It is interesting how the coefficients are larger
 in absolute value in columns 3 and 6 because this may confirm prior studies showing
 that midterm years are particularly bad for parties of the incumbent president.</p>
-<p>Interestingly, the unemployment difference term is not significant at the 5% level
+<p>Interestingly, the unemployment RATE difference term is not significant at the 5% level
 for incumbent Democrats (our base group), but has a very minor significant coefficient
 in the context of Republican incumbent Presidents.</p>
 <p>Similarly, in my columns 4-6 where I repeat the same steps using LFPR as the
-economic independent variable, the coefficients do not report significance and
+economic independent variable, the coefficients on the difference in LFPR between election years do not report significance at the 5% level and
 the Republican vote share seems primarily dependent on the state’s most
 recent voting patterns and the party of the Incumbent President.</p>
 <p>The R-sq is significantly stronger with
@@ -156,7 +159,7 @@ significance of a clear correlation. Hence, this project would require further d
 to see whether more nuanced models would detect a clear relationship or if
 the employment part of the economy is not what voters focus on.</p>
 <p>My regressions did however show that voting is very serially correlated -
-districts have a strong correlation from year to year. Additionally, the incumbent
+states have a strong correlation from year to year. Additionally, the incumbent
 president plays a negative role, on average, particularly during midterm years.</p>
 <p>Looking forward to 2022, this project is very relevant. Biden’s economy has been
 known for strong job growth but also overwhelming inflation. So, the economic

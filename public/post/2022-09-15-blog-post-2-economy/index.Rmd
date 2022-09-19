@@ -97,6 +97,9 @@ test<-dat_clean %>% filter(Year>2000)
 Using every state*election year from 1976-now, I look at trends 
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates between the past and current election.
+I measure unemployment difference as state's unemployment rate in current election-
+state's unemployment rate in past election. Similarly, I measure LFPR difference as
+state's LFPR in current election - state's LFPR in past election.
 
 ```{r Exploratory plots,message=FALSE,warning=FALSE}
 unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
@@ -110,8 +113,8 @@ lfpr<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),aes(x=LFPR_diff,y=
   scale_color_manual(values=c("Blue","Red"))+theme(legend.position='none')
 lfpr_midterm<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)&MidtermYear==1),aes(x=LFPR_diff,y=R_votemargin_st,col=Incumbent_Pres))+geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+
   scale_color_manual(values=c("Blue","Red"))
-(unemp_plot+unemp_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Unemployment Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
-(lfpr+lfpr_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Labor Force Participation Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
+(unemp_plot+unemp_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Unemployment Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent President Party')
+(lfpr+lfpr_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Labor Force Participation Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent President Party')
 ```
 As these graphs show, there is not a obvious trend in any direction between these two
 economic measures and Republican vote share by state.
@@ -200,12 +203,12 @@ constant state's voting patterns. It is interesting how the coefficients are lar
 in absolute value in columns 3 and 6 because this may confirm prior studies showing
 that midterm years are particularly bad for parties of the incumbent president.
 
-Interestingly, the unemployment difference term is not significant at the 5% level 
+Interestingly, the unemployment RATE difference term is not significant at the 5% level 
 for incumbent Democrats (our base group), but has a very minor significant coefficient
 in the context of Republican incumbent Presidents. 
 
 Similarly, in my columns 4-6 where I repeat the same steps using LFPR as the
-economic independent variable, the coefficients do not report significance and
+economic independent variable, the coefficients on the difference in LFPR between election years do not report significance at the 5% level and
 the Republican vote share seems primarily dependent on the state's most 
 recent voting patterns and the party of the Incumbent President.
 
@@ -333,7 +336,7 @@ to see whether more nuanced models would detect a clear relationship or if
 the employment part of the economy is not what voters focus on.
 
 My regressions did however show that voting is very serially correlated - 
-districts have a strong correlation from year to year. Additionally, the incumbent
+states have a strong correlation from year to year. Additionally, the incumbent
 president plays a negative role, on average, particularly during midterm years.
 
 Looking forward to 2022, this project is very relevant. Biden's economy has been
