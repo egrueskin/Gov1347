@@ -26,6 +26,10 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(stargazer)
+library("rmarkdown")
+library("tinytex")
+library("stargazer")
+library("sandwich")
 
 # Read state unemployment and house data 
 unemp<-read.csv("data/unemployment_state_monthly.csv")
@@ -63,7 +67,8 @@ dat_clean<-dat %>% group_by(state)%>%
   # Add lag variable and calculate Employment rate differences
   mutate(lag_R_vote=lag(R_votemargin_st),
          Unemp_rate=Unemployed/(Unemployed+Employed),
-         Unemp_diff=(Unemp_rate-lag(Unemp_rate)))
+         Unemp_diff=(Unemp_rate-lag(Unemp_rate)),
+         MidtermYear=ifelse(Year%%4,1,0))
 
   # Add 2022 president party  
          # president_party=case_when(is.na(president_party)~'D',
@@ -74,12 +79,16 @@ train<-dat_clean %>% filter(Year<2000)
 test<-dat_clean %>% filter(Year>2000)
 ```
 
-```{r lm, message=FALSE}
+```{r results='asis'}
+library('jtools')
+library('huxtable')
 lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
-summary(lm1)
+lm2<-lm(R_votemargin_st~Unemp_diff*factor(Incumbent_Pres),data=train)
+
+
 test$predict<-predict(lm1,test)
 list(BIC(lm1),summary(lm1)$r.squared)
-stargazer(lm1)
+export_summs(lm1,lm2)
 
 ```
 
