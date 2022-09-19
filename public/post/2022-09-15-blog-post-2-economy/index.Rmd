@@ -7,18 +7,18 @@ output:
   pdf_document: default
 slug: []
 categories: []
-summary: In this post, I look at the relationship between economic forces and house voting patterns.
+summary: In this post, I look at the relationship between economic forces and US house voting patterns. As a fundamental part of the campaign environment, the a strong economy can help an incumbent president maintain power in other chambers while a gloomy economy can make the case harder for incumbents.
 tags: []
 ---
 *Intro*
 
-In this blog post, I am examining how unemployment rates affect voting patterns 
+In this blog post, I am examining how unemployment rates and affect voting patterns 
 for House races in the United States.
 
 *Data* 
 
-I use three datasets: Unemployment by state, popular voting by house, and a national
-dataset with incumbent information
+I use three datasets: Unemployment by state, popular voting by house (state level), and a national
+dataset with presidential incumbent information.
 National: unemployment nationally and voting by house nationally
 
 ```{r setup, include=FALSE}
@@ -26,6 +26,15 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
 library(stargazer)
+library("rmarkdown")
+library("tinytex")
+library("stargazer")
+library("sandwich")
+library('patchwork')
+library('jtools')
+library('huxtable')
+library(usmap)
+
 
 # Read state unemployment and house data 
 unemp<-read.csv("data/unemployment_state_monthly.csv")
@@ -62,8 +71,10 @@ dat<-left_join(dat,h_seat,by=c('Year'='year'))
 dat_clean<-dat %>% group_by(state)%>%
   # Add lag variable and calculate Employment rate differences
   mutate(lag_R_vote=lag(R_votemargin_st),
-         Unemp_rate=Unemployed/(Unemployed+Employed),
-         Unemp_diff=(Unemp_rate-lag(Unemp_rate)))
+         LFPR_diff=LaborForce_prct-lag(LaborForce_prct),
+         Unemp_diff=(Unemployed_prct-lag(Unemployed_prct)),
+         MidtermYear=ifelse(Year%%4,1,0)
+         )
 
   # Add 2022 president party  
          # president_party=case_when(is.na(president_party)~'D',
@@ -74,30 +85,33 @@ train<-dat_clean %>% filter(Year<2000)
 test<-dat_clean %>% filter(Year>2000)
 ```
 
-```{r lm, message=FALSE}
-lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
-summary(lm1)
-test$predict<-predict(lm1,test)
-list(BIC(lm1),summary(lm1)$r.squared)
-stargazer(lm1)
+*Exploratory Plots* 
+Using 595 data points (every house election until this point), I look at trends 
+for examining the state-wide Republican voteshare by differences in labor force
+participation rate or unemployment rates.
 
+```{r Exploratory plots}
+unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
+       aes(x=Unemp_diff,y=R_votemargin_st,col=Incumbent_Pres))+
+  geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+ scale_color_manual(values=c("Blue","Red"))+
+   theme(legend.position = "none")
+unemp_midterm<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)&MidtermYear==1),
+       aes(x=Unemp_diff,y=R_votemargin_st,col=Incumbent_Pres))+
+  geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+ scale_color_manual(values=c("Blue","Red"))
+lfpr<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),aes(x=LFPR_diff,y=R_votemargin_st,col=Incumbent_Pres))+geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+
+  scale_color_manual(values=c("Blue","Red"))+theme(legend.position='none')
+lfpr_midterm<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)&MidtermYear==1),aes(x=LFPR_diff,y=R_votemargin_st,col=Incumbent_Pres))+geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+
+  scale_color_manual(values=c("Blue","Red"))
+(unemp_plot+unemp_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Unemployment Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
+(lfpr+lfpr_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Labor Force Participation Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
 ```
+As these graphs show, there is not a obvious trend in any direction between these two
+economic measures and Republican vote share by state.
+For the times where the incumbent presidnet was Republican, I expected there to be a positive relationship between labor force participation rate (LFPR) and Republican vote share along with a negative relationship between unemployment rate changes and Republican vote share. If the incumbent president was Democratic, I expected those relationships in inverse.
+The lack of relationship could be due to the labor data being pooled at a state-wide level, while the races themselves represent smaller districts. Similarly, this could speak to the fact that these measures of the economy
+are less tangible than indices like Real Disposable Income and CPI.
 
-```{r test, message=FALSE}
-test_pre22<-test %>% filter(Year<2022)%>% mutate(
-  error=predict-R_votemargin_st
-)
-ggplot(test_pre22,aes(x=R_votemargin_st,y=predict))+geom_point()
-ggplot(test_pre22,aes(x=Year,y=error,color=factor(Incumbent_Pres)))+geom_point()
-library(usmap)
-plot_usmap(data=test_pre22,regions='states',values='error')+facet_wrap(~Year)+
- scale_fill_gradient2(low = "red", mid="white",high = "blue", 
-  name = "Difference Scale")+labs(title='Difference between Predictions and Acutal Values',
- subtitle='Blue=Results were more Republican than Predicted, Red=Results were more Republican than Predicted')+
-  theme(legend.position="right")
-
-mean((test_pre22$predict-test_pre22$R_votemargin_st)^2)
-mse_g <- mean((lm1$model$R_votemargin_st-lm1$fitted.values)^2)
+```{r national,include=FALSE}
 
 unemp_nat<-read.csv("data/unemployment_national_quarterly_final.csv")
 unemp_nat<-unemp_nat %>% 
@@ -120,63 +134,168 @@ dat_nat<-dat_nat%>%
          Unemp_diff=(UNRATE-lag(UNRATE))/lag(UNRATE))
 
 # Set train and test datasets
-train<-dat_nat %>% filter(year<2000)
-test<-dat_nat %>% filter(year>=2000)
+train_nat<-dat_nat %>% filter(year<2000)
 
-# Run regression and add predictions to test dataset
-lm1<-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(president_party),data=train)
+```
+
+*Modeling*
+
+To test these hypotheses further, I ran more rigorous models examining Republican
+vote share by state against a variety of variables. I split my data into two datasets:
+all elections before 2000 went into 'training,' or building the model, and and all
+elections 2000 or later went to testing for checking my model. 
+
+In the first regression, I 
+use the district's Republican vote share from 2 years prior along with an interaction
+for the party of the incumbent president with the difference in 
+unemployment rates between the time of the election and the same time two years prior. 
+In the second regression, I remove the district's vote share from two years prior, and in the third regression 
+I use the same model as the first but restrict the data to only midterm years.
+
+For models 4-6, I repeat the same steps except substitute the difference in 
+Labor Force Participation Rate for the difference in unemployment rate. 
+In models 6-7, I use national unemployment and voting data.
+
+```{r results='asis'}
+
+lm1<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train)
+lm2<-lm(R_votemargin_st~Unemp_diff*factor(Incumbent_Pres),data=train)
+lm3<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train%>% filter(MidtermYear==1))
+lm4<-lm(R_votemargin_st~lag_R_vote+LFPR_diff*factor(Incumbent_Pres),data=train)
+lm5<-lm(R_votemargin_st~LFPR_diff*factor(Incumbent_Pres),data=train)
+lm6<-lm(R_votemargin_st~lag_R_vote+LFPR_diff*factor(Incumbent_Pres),data=train%>% filter(MidtermYear==1))
+lm_nat<-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(president_party),data=train_nat)
+lm_nat_2<-lm(R_votemargin~Unemp_diff*factor(president_party),data=train_nat)
+
+export_summs(lm1,lm2,lm3,lm4,lm5,lm6,lm_nat,lm_nat_2,
+             model.names=c('R_Vote Share', 'R_Vote Share','R Vote Share (Midterm)',
+                           'R_Vote Share', 'R_Vote Share','R Vote Share (Midterm)',
+                           'R Vote Share (National)','R Vote Share (National)'))
+
+```
+
+From the first three columns, we see that the model with the highest R-squared,
+or deviance explained, is the first column, which includes all years and information
+about the district's vote in the election prior. 
+
+The lag_R_vote should be interpreted as: every .01 point increase in the 
+district's prior Republican vote is associated with a .0078 increase in the following
+election's Republican vote. I refer to these by hundredths because the voting share is measured
+in hundredths. This technique can be referred to
+as serial correlation, where I am using the lagged variable of interest as an independent variable.
+
+In all of the models, the coefficient for incumbent president is significant,
+ranging from about -.03 to -.07. This suggests that a party's house vote is 
+expected to decrease if it is the same party as the incumbent, even holding
+constant state's voting patterns. It is interesting how the coefficients are larger
+in absolute value in columns 3 and 6 because this may confirm prior studies showing
+that midterm years are particularly bad for parties of the incumbent presidnet.
+
+Interestingly, the unemployment difference term is not significant at the 5% level 
+for incumbent Democrats (our base group), but has a very minor significant coefficient
+in the context of Republican incumbent Presidents. 
+
+Similarly, in my columns 4-6 where I repeat the same steps using LFPR as the
+economic independent variable, the coefficients do not report significance and
+the Republican vote share seems primarily dependent on the district's most 
+recent voting patterns and the party of the Incumbent President.
+
+The R-sq is significantly stronger with 
+state-level data than nation-level data, however these models are challenging to compare
+because there are vast differences in sample sizes.
+
+*Model Validation*
+
+Next, I wanted to check how well my model had done, so I compared results between 
+my predictions and the actual Republican vote shares in all years before 2022 
+(since we don't have actual results for that yet). To save time, I only tested 
+my first model, although testing the other would also prove fruitful.
+
+```{r edit, include=FALSE}
+test$predict<-predict(lm1,test)
+test$predict2<-predict(lm2,test)
+test$predict3<-predict(lm3,test)
+test$predict4<-predict(lm4,test)
+test$predict5<-predict(lm5,test)
+test$predict6<-predict(lm6,test)
+
+test_pre22<-test %>% filter(Year<2022)%>% mutate(
+  error=predict-R_votemargin_st
+)
+```
+
+```{r plots, message=FALSE}
+ggplot(test_pre22,aes(x=R_votemargin_st,y=predict))+geom_point()+labs(title='Predictions vs Actual Values')
+ggplot(test_pre22,aes(x=Year,y=error,color=factor(Incumbent_Pres)))+geom_point()+
+  labs(title='Prediction Error By Year and Incumbent Party',color='Incumbent \n President Party')+
+  scale_color_manual(values=c("Blue","Red"))
+plot_usmap(data=test_pre22,regions='states',values='error')+facet_wrap(~Year)+
+ scale_fill_gradient2(low = "red", mid="white",high = "blue", 
+  name = "Difference Scale")+labs(title='Difference between Predictions and Acutal Values',
+ subtitle='Blue=Results were more Democratic than Predicted, Red=Results were more Republican than Predicted')+
+  theme(legend.position="right")
+
+c(mean((lm1$model$R_votemargin_st-lm1$fitted.values)^2),
+     mean((lm2$model$R_votemargin_st-lm2$fitted.values)^2),
+     mean((lm3$model$R_votemargin_st-lm3$fitted.values)^2),
+     mean((lm4$model$R_votemargin_st-lm4$fitted.values)^2),
+     mean((lm5$model$R_votemargin_st-lm5$fitted.values)^2),
+     mean((lm6$model$R_votemargin_st-lm6$fitted.values)^2))
+
+```
+
+Additionally, the mean squared error was at 0.004 for this model.
+
+
+# Ohio-01 Race
+
+Finally, I looked at my congressional race- Ohio 01. Since this dataset is very small,
+I was unable to find any meaningful patterns but it provided a little more background
+into the economic landscape and voting patterns in the district.
+
+
+
+```{r Ohio data, include=FALSE}
+oh_vote<-read.csv("data/house party vote share by district 1948-2020.csv")%>%
+  filter(State=='Ohio' & Area=='District 1')
+oh_vote$RepStatus[which(oh_vote$raceYear == "2010")] <- 'Challenger'
+# mutate Rep vote margin by state %>%
+oh_vote<-oh_vote %>%
+  group_by(raceYear,RepStatus)%>%
+  summarise(R_votemargin = (sum(RepVotes))/
+           sum(RepVotes + DemVotes),
+D_votemargin = (sum(DemVotes))/
+sum(RepVotes + DemVotes))%>%
+  mutate(Incumbent_Votes=case_when(
+    RepStatus=='Incumbent'~R_votemargin,
+    RepStatus=='Challenger'~D_votemargin
+  ))
+
+unemp_ohio<-unemp %>% filter(State.and.area=='Ohio')%>%
+  mutate(ElectionYear=ifelse(Year%%2,0,1))%>%
+  filter(ElectionYear==1)%>%
+  filter(Month==10|(Month==5 & Year==2022))%>%
+  rename('state'='State.and.area')
+dat_ohio<-left_join(unemp_ohio,oh_vote,by=c('Year'='raceYear'))
+```
+
+```{r ohio plots, message=FALSE}
+ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,
+                    col=(Unemployed_prct-lag(Unemployed_prct))))+geom_point()+
+  labs(color='Unemp  Diff',title='Incumbent Vote Share by Year and Unemployment difference between elections',x='Incumbent Vote Share')
+
+ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,col=(LaborForce_prct-lag(LaborForce_prct))))+geom_point()+scale_color_gradient(low='black',high='green')+labs(color='LFPR Diff',
+          title='Incumbent Vote Share by Year and Unemployment difference between elections',y='Incumbent Vote Share')
+```
+
+# 2022 Predictions
+
+```{r predictions, include=FALSE}
+test<- test %>% mutate(Incumbent_Pres=case_when(
+                       Year==2022~'D',
+                       TRUE ~ Incumbent_Pres))
 test$predict<-predict(lm1,test)
 
-# See how well predictions fared in previous years
-test_pre22<-test %>% filter(year<2022)
-MSE<-mean((test_pre22$predict-test_pre22$R_votemargin)^2)
-list(MSE,BIC(lm1),lm1$model$R.squared)
-
-
-# Visualization
-ggplot(test_pre22,aes(x=R_votemargin,y=predict))+geom_point()
-
-
-
-
-ggplot(data=dat%>% filter(!(R_votemargin_st%in% c(0,1))),
-       aes(x=Unemployed_prct,y=R_votemargin_st))+geom_smooth()+facet_wrap(~state)
-
-library(usmap)
-# plot_usmap(data=test,regions='states',values='predict')+
-#  scale_fill_gradient2(low = "blue", mid="white",high = "red", 
-#   name = "Difference Scale")+labs(title='Difference in GOP 4-yr voteshare margin',
-#  subtitle='Red=Results were more Republican than Expected, Blue=More Democrat than Expected, Gray=No Data')+
-#   theme(legend.position="right")
-  
+plot_usmap(data=test %>% filter(Year==2022),regions='states',values='predict')+
+ scale_fill_gradient2(low = "blue",high = "red")
 ```
-
-
-# Extra 
-```{r, include=FALSE}
-
-unemp<-read.csv("data/unemployment_national_quarterly_final.csv")
-house_vote<-read.csv("data/house_popvote_seats.csv")
-RDI<-read.csv("data/RDI_quarterly.csv")%>% filter(quarter_cycle==7)%>%
-  mutate(diff=(DSPIC_qt-lag(DSPIC_qt))/lag(DSPIC_qt))
-CPI<-read.csv("data/CPI_monthly.csv")%>% mutate(date=as_date(DATE))%>%
-  filter(month(date)==10&year(date)%%2)
-
-unemp_2<-unemp %>% 
-  filter(quarter_cycle==3)
-dat<-inner_join(unemp_2,house_vote,by='year')
-dat<-inner_join(dat,RDI,by='year')
-
-dat<-dat%>%
-  mutate(R_seatshare=R_seats/(R_seats+D_seats),
-         D_seatshare=D_seats/(R_seats+D_seats))%>%
-    mutate(Incumbent_vote=ifelse(H_incumbent_party=='R',R_majorvote_pct,D_majorvote_pct),
-         Incumbent_share=ifelse(H_incumbent_party=='R',R_seatshare,D_seatshare))
-
-ggplot(data=dat,aes(x=diff,y=H_incumbent_party_majorvote_pct,col=H_incumbent_party))+geom_point()+facet_wrap(~H_incumbent_party)
-ggplot(data=dat,aes(x=UNRATE,y=Incumbent_share))+geom_point()+facet_wrap(~H_incumbent_party)
-
-lm1<-lm(H_incumbent_party_majorvote_pct~DSPIC_change_pct+factor(H_incumbent_party),data=dat)
-
-```
-
