@@ -12,14 +12,19 @@ tags: []
 ---
 *Intro*
 
-In this blog post, I am examining how unemployment rates and affect voting patterns 
-for House races in the United States.
+In this blog post (Extension #3), I  am examining how unemployment rates and labor force
+participation rates affect voting patterns for House races in the United States at the state level.
+I chose to model my outcome variable as the popular vote for House races by state, 
+as opposed to seat share, because I thought this measure captured more of the nuance behind
+each race. However, that would be equally interesting and worthwhile to study.
 
 *Data* 
 
-I use three datasets: Unemployment by state, popular voting by house (state level), and a national
-dataset with presidential incumbent information.
-National: unemployment nationally and voting by house nationally
+For my local dataset, I join three datasets: Economic data by by state, popular voting by house (state level), and a national
+dataset with presidential incumbent information. I restricted the economic data to just 
+be in the 3rd quarter so it was the most recent for elections.
+To compare local to national data, I built a national dataset of nationwide employment
+and house voting. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -90,7 +95,7 @@ Using 595 data points (every house election until this point), I look at trends
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates.
 
-```{r Exploratory plots}
+```{r Exploratory plots,message=FALSE}
 unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
        aes(x=Unemp_diff,y=R_votemargin_st,col=Incumbent_Pres))+
   geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+ scale_color_manual(values=c("Blue","Red"))+
@@ -244,8 +249,13 @@ c(mean((lm1$model$R_votemargin_st-lm1$fitted.values)^2),
 
 ```
 
-Additionally, the mean squared error was at 0.004 for this model.
+These plots above show the distributions of errors across party, year, and state.
+Fortunately, there does not appear to be a significant bias in my model's errors. 
+However, to fully analyze the modeltake much more time and research to fully ana
 
+Additionally, at the very bottom, I printed out the MSE for each local model. This shows
+that including the lagged Republican vote share significantly reduces error, 
+however it may be susceptible to overfitting in the long term.
 
 # Ohio-01 Race
 
@@ -290,12 +300,12 @@ ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,col=
 
 # 2022 Predictions
 
-```{r predictions, include=FALSE}
+```{r predictions, message=FALSE}
 test<- test %>% mutate(Incumbent_Pres=case_when(
                        Year==2022~'D',
                        TRUE ~ Incumbent_Pres))
 test$predict<-predict(lm1,test)
 
 plot_usmap(data=test %>% filter(Year==2022),regions='states',values='predict')+
- scale_fill_gradient2(low = "blue",high = "red")
+ scale_fill_gradient2(low = "blue",high = "red")+labs(title='Predictions for 2022 Republican Vote Share by state')
 ```

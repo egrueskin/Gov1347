@@ -65,25 +65,26 @@
 
 
 <p><em>Intro</em></p>
-<p>In this blog post, I am examining how unemployment rates and affect voting patterns
-for House races in the United States.</p>
+<p>In this blog post (Extension #3), I am examining how unemployment rates and labor force
+participation rates affect voting patterns for House races in the United States at the state level.
+I chose to model my outcome variable as the popular vote for House races by state,
+as opposed to seat share, because I thought this measure captured more of the nuance behind
+each race. However, that would be equally interesting and worthwhile to study.</p>
 <p><em>Data</em></p>
-<p>I use three datasets: Unemployment by state, popular voting by house (state level), and a national
-dataset with presidential incumbent information.
-National: unemployment nationally and voting by house nationally</p>
+<p>For my local dataset, I join three datasets: Economic data by by state, popular voting by house (state level), and a national
+dataset with presidential incumbent information. I restricted the economic data to just
+be in the 3rd quarter so it was the most recent for elections.
+To compare local to national data, I built a national dataset of nationwide employment
+and house voting.</p>
 <p><em>Exploratory Plots</em>
 Using 595 data points (every house election until this point), I look at trends
 for examining the state-wide Republican voteshare by differences in labor force
 participation rate or unemployment rates.</p>
-<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
 <pre><code>## Warning: Removed 50 rows containing non-finite values (stat_smooth).</code></pre>
 <pre><code>## Warning: Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
 <p><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/Exploratory%20plots-1.png" width="672" /></p>
-<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
 <pre><code>## Warning: Removed 50 rows containing non-finite values (stat_smooth).
 ## Removed 50 rows containing missing values (geom_point).</code></pre>
-<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
 <p><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/Exploratory%20plots-2.png" width="672" />
 As these graphs show, there is not a obvious trend in any direction between these two
 economic measures and Republican vote share by state.
@@ -182,7 +183,12 @@ my predictions and the actual Republican vote shares in all years before 2022
 my first model, although testing the other would also prove fruitful.</p>
 <p><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/plots-1.png" width="672" /><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/plots-2.png" width="672" /><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/plots-3.png" width="672" /></p>
 <pre><code>## [1] 0.005078461 0.013207290 0.005334608 0.005145969 0.013270221 0.005325042</code></pre>
-<p>Additionally, the mean squared error was at 0.004 for this model.</p>
+<p>These plots above show the distributions of errors across party, year, and state.
+Fortunately, there does not appear to be a significant bias in my model’s errors.
+However, to fully analyze the modeltake much more time and research to fully ana</p>
+<p>Additionally, at the very bottom, I printed out the MSE for each local model. This shows
+that including the lagged Republican vote share significantly reduces error,
+however it may be susceptible to overfitting in the long term.</p>
 <div id="ohio-01-race" class="section level1">
 <h1>Ohio-01 Race</h1>
 <p>Finally, I looked at my congressional race- Ohio 01. Since this dataset is very small,
@@ -192,6 +198,7 @@ into the economic landscape and voting patterns in the district.</p>
 </div>
 <div id="predictions" class="section level1">
 <h1>2022 Predictions</h1>
+<p><img src="http://example.org/post/2022-09-15-blog-post-2-economy/index_files/figure-html/predictions-1.png" width="672" /></p>
 </div>
 
 
@@ -209,7 +216,7 @@ into the economic landscape and voting patterns in the district.</p>
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-09-19 06:15:17.909583 -0400 EDT m=&#43;0.193888001">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-09-19 06:28:48.019851 -0400 EDT m=&#43;0.177495001">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
