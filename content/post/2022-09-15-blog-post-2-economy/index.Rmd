@@ -10,7 +10,8 @@ categories: []
 summary: In this post, I look at the relationship between economic forces and US house voting patterns. As a fundamental part of the campaign environment, the a strong economy can help an incumbent president maintain power in other chambers while a gloomy economy can make the case harder for incumbents.
 tags: []
 ---
-#Intro
+
+# Intro
 
 In this blog post (Extension #3), I  am examining how unemployment rates and labor force
 participation rates affect voting patterns for House races in the United States at the state level.
@@ -18,7 +19,7 @@ I chose to model my outcome variable as the popular vote for House races by stat
 as opposed to seat share, because I thought this measure captured more of the nuance behind
 each race. However, that would be equally interesting and worthwhile to study.
 
-*Data* 
+# Data
 
 For my local dataset, I join three datasets: Economic data by by state, popular voting by house (state level), and a national
 dataset with presidential incumbent information. I restricted the economic data to just 
@@ -143,7 +144,7 @@ train_nat<-dat_nat %>% filter(year<2000)
 
 ```
 
-*Modeling*
+# Modeling
 
 To test these hypotheses further, I ran more rigorous models examining Republican
 vote share by state against a variety of variables. I split my data into two datasets:
@@ -209,7 +210,7 @@ The R-sq is significantly stronger with
 state-level data than nation-level data, however these models are challenging to compare
 because there are vast differences in sample sizes.
 
-*Model Validation*
+# Model Validation
 
 Next, I wanted to check how well my model had done, so I compared results between 
 my predictions and the actual Republican vote shares in all years before 2022 

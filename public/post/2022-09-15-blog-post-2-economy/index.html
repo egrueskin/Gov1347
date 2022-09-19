@@ -64,18 +64,22 @@
 		
 
 
-<p>#Intro</p>
+<div id="intro" class="section level1">
+<h1>Intro</h1>
 <p>In this blog post (Extension #3), I am examining how unemployment rates and labor force
 participation rates affect voting patterns for House races in the United States at the state level.
 I chose to model my outcome variable as the popular vote for House races by state,
 as opposed to seat share, because I thought this measure captured more of the nuance behind
 each race. However, that would be equally interesting and worthwhile to study.</p>
-<p><em>Data</em></p>
+</div>
+<div id="data" class="section level1">
+<h1>Data</h1>
 <p>For my local dataset, I join three datasets: Economic data by by state, popular voting by house (state level), and a national
 dataset with presidential incumbent information. I restricted the economic data to just
 be in the 3rd quarter so it was the most recent for elections.
 To compare local to national data, I built a national dataset of nationwide employment
 and house voting.</p>
+</div>
 <div id="exploratory-plots" class="section level1">
 <h1>Exploratory Plots</h1>
 <p>Using every state*election year from 1976-now, I look at trends
@@ -87,7 +91,9 @@ economic measures and Republican vote share by state.
 For the times where the incumbent presidnet was Republican, I expected there to be a positive relationship between labor force participation rate (LFPR) and Republican vote share along with a negative relationship between unemployment rate changes and Republican vote share. If the incumbent president was Democratic, I expected those relationships in inverse.
 The lack of relationship could be due to the labor data being pooled at a state-wide level, while the races themselves represent smaller districts. Similarly, this could speak to the fact that these measures of the economy
 are less tangible than indices like Real Disposable Income and CPI.</p>
-<p><em>Modeling</em></p>
+</div>
+<div id="modeling" class="section level1">
+<h1>Modeling</h1>
 <p>To test these hypotheses further, I ran more rigorous models examining Republican
 vote share by state against a variety of variables. I split my data into two datasets:
 all elections before 2000 went into ‘training,’ or building the model, and and all
@@ -172,7 +178,9 @@ recent voting patterns and the party of the Incumbent President.</p>
 <p>The R-sq is significantly stronger with
 state-level data than nation-level data, however these models are challenging to compare
 because there are vast differences in sample sizes.</p>
-<p><em>Model Validation</em></p>
+</div>
+<div id="model-validation" class="section level1">
+<h1>Model Validation</h1>
 <p>Next, I wanted to check how well my model had done, so I compared results between
 my predictions and the actual Republican vote shares in all years before 2022
 (since we don’t have actual results for that yet). To save time, I only tested
@@ -229,7 +237,7 @@ have grand implications for house popular vote/seat share.</p>
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-09-19 06:39:26.184179 -0400 EDT m=&#43;0.186826126">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-09-19 06:42:49.068768 -0400 EDT m=&#43;0.184223918">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
