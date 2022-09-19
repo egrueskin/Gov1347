@@ -123,12 +123,13 @@ unemp_nat<-read.csv("data/unemployment_national_quarterly_final.csv")
 unemp_nat<-unemp_nat %>% 
   filter(quarter_cycle==3|(quarter_cycle==2 & year==2022))
 
-h_seat<-read.csv("data/house_popvote_seats.csv")
+h_seat<-read.csv("data/house_popvote_seats.csv")%>% 
+  mutate(Incumbent_Pres=lag(president_party))
 
 nat_vote<-h_seat%>%
-  select(year,  R_votes, D_votes,president_party) %>%
+  select(year,  R_votes, D_votes,Incumbent_Pres) %>%
 # summarize party vote share by state
-  group_by(year,president_party) %>%
+  group_by(year,Incumbent_Pres) %>%
 # mutate Rep vote margin by state %>%
   summarise(R_votemargin = R_votes/(R_votes+D_votes))
 joined_nat<-inner_join(nat_vote,unemp_nat,by='year')%>%
@@ -170,8 +171,8 @@ lm3<-lm(R_votemargin_st~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train%
 lm4<-lm(R_votemargin_st~lag_R_vote+LFPR_diff*factor(Incumbent_Pres),data=train)
 lm5<-lm(R_votemargin_st~LFPR_diff*factor(Incumbent_Pres),data=train)
 lm6<-lm(R_votemargin_st~lag_R_vote+LFPR_diff*factor(Incumbent_Pres),data=train%>% filter(MidtermYear==1))
-lm_nat<-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(president_party),data=train_nat)
-lm_nat_2<-lm(R_votemargin~Unemp_diff*factor(president_party),data=train_nat)
+lm_nat<-lm(R_votemargin~lag_R_vote+Unemp_diff*factor(Incumbent_Pres),data=train_nat)
+lm_nat_2<-lm(R_votemargin~Unemp_diff*factor(Incumbent_Pres),data=train_nat)
 
 export_summs(lm1,lm2,lm3,lm4,lm5,lm6,lm_nat,lm_nat_2,
              model.names=c('R_Vote Share', 'R_Vote Share','R Vote Share (Midterm)',
@@ -296,7 +297,7 @@ ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,
   labs(color='Unemp  Diff',title='Incumbent Vote Share by Year and Unemployment difference between elections',x='Incumbent Vote Share')
 
 ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,col=(LaborForce_prct-lag(LaborForce_prct))))+geom_point()+scale_color_gradient(low='black',high='green')+labs(color='LFPR Diff',
-          title='Incumbent Vote Share by Year and Unemployment difference between elections',y='Incumbent Vote Share')
+          title='Incumbent Vote Share by Year and LFPR difference between elections',y='Incumbent Vote Share')
 ```
 
 # 2022 Predictions
