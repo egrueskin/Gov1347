@@ -7,7 +7,7 @@ output:
   pdf_document: default
 slug: []
 categories: []
-summary: In this post, I look at the relationship between economic forces and US house voting patterns. As a fundamental part of the campaign environment, the a strong economy can help an incumbent president maintain power in other chambers while a gloomy economy can make the case harder for incumbents.
+summary: In this post, I look at the relationship between economic forces and US house voting patterns at the state and national level. As a fundamental part of the campaign environment, the a strong economy can help an incumbent president maintain power in other chambers while a gloomy economy can make the case harder for incumbents.
 tags: []
 ---
 
@@ -17,7 +17,7 @@ In this blog post (Extension #3), I  am examining how unemployment rates and lab
 participation rates affect voting patterns for House races in the United States at the state level.
 I chose to model my outcome variable as the popular vote for House races by state, 
 as opposed to seat share, because I thought this measure captured more of the nuance behind
-each race. However, that would be equally interesting and worthwhile to study.
+each race. However, modeling seat share would be equally interesting and worthwhile to study.
 
 # Data
 
@@ -40,6 +40,8 @@ library('patchwork')
 library('jtools')
 library('huxtable')
 library(usmap)
+library(geomtextpath)
+
 
 
 # Read state unemployment and house data 
@@ -94,7 +96,7 @@ test<-dat_clean %>% filter(Year>2000)
 # Exploratory Plots
 Using every state*election year from 1976-now, I look at trends 
 for examining the state-wide Republican voteshare by differences in labor force
-participation rate or unemployment rates.
+participation rate or unemployment rates between the past and current election.
 
 ```{r Exploratory plots,message=FALSE,warning=FALSE}
 unemp_plot<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),
@@ -108,12 +110,12 @@ lfpr<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)),aes(x=LFPR_diff,y=
   scale_color_manual(values=c("Blue","Red"))+theme(legend.position='none')
 lfpr_midterm<-ggplot(data=dat_clean%>% filter(!is.na(Incumbent_Pres)&MidtermYear==1),aes(x=LFPR_diff,y=R_votemargin_st,col=Incumbent_Pres))+geom_point(alpha=.4)+geom_smooth()+facet_wrap(~Incumbent_Pres)+
   scale_color_manual(values=c("Blue","Red"))
-(unemp_plot+unemp_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Unemployment Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
-(lfpr+lfpr_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Labor Force Participation Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent Party')
+(unemp_plot+unemp_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Unemployment Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent President Party')
+(lfpr+lfpr_midterm)+plot_annotation(title='Republican Vote Share vs Difference in Labor Force Participation Rate (2-year intervals)',subtitle='Left: All years, Right: Midterm Years, Both: Faceted and colored by Incumbent President Party')
 ```
 As these graphs show, there is not a obvious trend in any direction between these two
 economic measures and Republican vote share by state.
-For the times where the incumbent presidnet was Republican, I expected there to be a positive relationship between labor force participation rate (LFPR) and Republican vote share along with a negative relationship between unemployment rate changes and Republican vote share. If the incumbent president was Democratic, I expected those relationships in inverse.
+For the times where the incumbent president was Republican, I expected there to be a positive relationship between labor force participation rate (LFPR) and Republican vote share along with a negative relationship between unemployment rate changes and Republican vote share. If the incumbent president was Democratic, I expected those relationships in inverse.
 The lack of relationship could be due to the labor data being pooled at a state-wide level, while the races themselves represent smaller districts. Similarly, this could speak to the fact that these measures of the economy
 are less tangible than indices like Real Disposable Income and CPI.
 
@@ -153,10 +155,10 @@ all elections before 2000 went into 'training,' or building the model, and and a
 elections 2000 or later went to testing for checking my model. 
 
 In the first regression, I 
-use the district's Republican vote share from 2 years prior along with an interaction
+use these independent variables: the state's Republican vote share from 2 years prior along with an interaction
 for the party of the incumbent president with the difference in 
-unemployment rates between the time of the election and the same time two years prior. 
-In the second regression, I remove the district's vote share from two years prior, and in the third regression 
+unemployment rates between the current and former election (time two years prior). 
+In the second regression, I remove the state's vote share from two years prior, and in the third regression 
 I use the same model as the first but restrict the data to only midterm years.
 
 For models 4-6, I repeat the same steps except substitute the difference in 
@@ -183,10 +185,10 @@ export_summs(lm1,lm2,lm3,lm4,lm5,lm6,lm_nat,lm_nat_2,
 
 From the first three columns, we see that the model with the highest R-squared,
 or deviance explained, is the first column, which includes all years and information
-about the district's vote in the election prior. 
+about the state's vote in the election prior. 
 
 The lag_R_vote should be interpreted as: every .01 point increase in the 
-district's prior Republican vote is associated with a .0078 increase in the following
+state's prior Republican vote is associated with a .0078 increase in the following
 election's Republican vote. I refer to these by hundredths because the voting share is measured
 in hundredths. This technique can be referred to
 as serial correlation, where I am using the lagged variable of interest as an independent variable.
@@ -196,15 +198,15 @@ ranging from about -.03 to -.07. This suggests that a party's house vote is
 expected to decrease if it is the same party as the incumbent, even holding
 constant state's voting patterns. It is interesting how the coefficients are larger
 in absolute value in columns 3 and 6 because this may confirm prior studies showing
-that midterm years are particularly bad for parties of the incumbent presidnet.
+that midterm years are particularly bad for parties of the incumbent president.
 
-Interestingly, the unemployment difference term is not significant at the 5% level 
+Interestingly, the unemployment RATE difference term is not significant at the 5% level 
 for incumbent Democrats (our base group), but has a very minor significant coefficient
 in the context of Republican incumbent Presidents. 
 
 Similarly, in my columns 4-6 where I repeat the same steps using LFPR as the
-economic independent variable, the coefficients do not report significance and
-the Republican vote share seems primarily dependent on the district's most 
+economic independent variable, the coefficients on the difference in LFPR between election years do not report significance at the 5% level and
+the Republican vote share seems primarily dependent on the state's most 
 recent voting patterns and the party of the Incumbent President.
 
 The R-sq is significantly stronger with 
@@ -294,23 +296,32 @@ dat_ohio<-left_join(unemp_ohio,oh_vote,by=c('Year'='raceYear'))
 ```{r ohio plots, message=FALSE}
 ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,
                     col=(Unemployed_prct-lag(Unemployed_prct))))+geom_point()+
-  labs(color='Unemp  Diff',title='Incumbent Vote Share by Year and Unemployment difference between elections',x='Incumbent Vote Share')
+  labs(color='Unemp  Diff',title='Incumbent Vote Share by Year and Unemployment difference between elections',x='Incumbent Vote Share') +
+  geom_textvline(label = "Steve Chabot enters", xintercept = 1994, vjust = -.4,linetype=2,color='red',size=3)
 
 ggplot(data=dat_ohio%>% filter(R_votemargin>0),aes(x=Year,y=Incumbent_Votes,col=(LaborForce_prct-lag(LaborForce_prct))))+geom_point()+scale_color_gradient(low='black',high='green')+labs(color='LFPR Diff',
-          title='Incumbent Vote Share by Year and LFPR difference between elections',y='Incumbent Vote Share')
+          title='Incumbent Vote Share by Year and LFPR difference between elections',y='Incumbent Vote Share')+
+   geom_textvline(label = "Steve Chabot enters", xintercept = 1994, vjust = -.4,linetype=2,color='red',size=3) 
 ```
 
 # 2022 Predictions
 
 To end my blog, I plotted my predictions for house vote share by state in 2022, using model #1.
+Since I didn't yet have Q3 economic data, I used the latest month - May.
 ```{r predictions, message=FALSE}
 test<- test %>% mutate(Incumbent_Pres=case_when(
                        Year==2022~'D',
                        TRUE ~ Incumbent_Pres))
 test$predict<-predict(lm1,test)
 
-plot_usmap(data=test %>% filter(Year==2022),regions='states',values='predict')+
- scale_fill_gradient2(low = "blue",high = "red")+labs(title='Predictions for 2022 Republican Vote Share by state')
+
+p<-plot_usmap(data=test %>% filter(Year==2022),regions='states',values='predict',labels=TRUE)+
+ scale_fill_gradient(low = "blue",high = "red")+
+  labs(title='Predictions for 2022 Republican Vote Share by state',
+       'Red= Strong R, Blue/Dark Purple= Strong D, Light Purple/Pink=Less clear')
+p$layers[[2]]$aes_params$size <- 2
+print(p)
+
 ```
 
 # Conclusion
