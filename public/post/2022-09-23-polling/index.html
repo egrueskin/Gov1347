@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+		
+		
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Polling &middot; My New Hugo Site</title>
+
+		
+		<link rel="stylesheet" href="/css/style.css">
+		<link rel="stylesheet" href="/css/fonts.css">
+		
+		<link rel="icon" href="/favicon.ico"/>
+		<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+		
+		<link href="" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+
+		<script src="/js/darkmode.js"></script>
+	</head>
+
+    <body>
+        		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					
+						<h2 class="nav-title">My New Hugo Site</h2>
+					
+				</a>
+				<ul>
+    
+    
+</ul>
+			</div>
+		</nav>
+
+        <div id="darkModeToggle" onclick="toggleDarkMode()">
+  &#9680; 
+</div>
+
+        
+
+<main>
+	
+
+
+        <div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        R package build
+        <br>
+        <span>on&nbsp;</span><time datetime="2022-09-23 00:00:00 &#43;0000 UTC">September 23, 2022</time>
+</div>
+
+		<h1 class="post-title">Polling</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>In this blog post, I choose to explore both Extension #1 and
+Extension #2. For Extension #1, I will compare forecasting methods from The Economist
+and FiveThirtyEight, as well as giving my own two cents on the approach. In extension #2,
+I will look at historical generic ballot data, build my own model,
+and incorporate nation-wide level economic data to build a nationwide
+vote share model. I will not include a part for the Ohio-01
+race because there has only been one poll so far.</p>
+</div>
+<div id="extension-1-comparing-fivethirtyeight-to-the-economist" class="section level1">
+<h1>Extension 1: Comparing FiveThirtyEight to the Economist</h1>
+<p>In FiveThirtyEight’s methodology report about their 2022 2022 midterm forecasts,
+they detail their three main models: Lite, Classic, and Deluxe. Classic, their
+main model, incorporates polling data, CANTOR (a system that uses inference to
+get comparable polling stats from districts without polls), and Fundamentals(variables
+like fundraising, approval ratings, incumbency status, former voting patterns).
+Their Lite model only uses Polls and CANTOR-based polling inference,
+while their Deluxe model is the Classic along with expert forecasts ratings
+for races.</p>
+<p>FiveThirtyEigjhty does not simply treat all polls as equal - they have a rigorous
+process for rating polls based on how their methods, past performance, and company
+standards. Then, FiveThirtyEight weights polls in their models based off their rating.</p>
+<p>In terms of modeling uncertainty, the FiveThirty Eight model includes for the possibility
+of a ‘uniform national swing,’ or situation where all the polls were biased in one
+party’s direction. Similarly, their model projects turnout and includes these variances
+into their overall distribution. While the article didn’t go into specific detail
+on their simulation processes, it is important to note that their CANTOR machine
+simulates a grid of possible variables to model a variety of outcomes.</p>
+<p>The Economist uses many similar techniques to FiveThirtyEight, but appears to rely
+significantly less on local ballots and more on the generic ballot.</p>
+<p>Their approach begins at the nationwide-level, using the generic ballot results to detect the pulse of
+each party’s popularity. They also incorporate presidential approval, polarisation, and partisan lean
+into their voting-based predictors. Finally, this first stage model includes a series of
+fundamentals, defined in the article as: type of election year, presidential re-election status,
+and unemployment.</p>
+<p>Next, The Economist model begins incorporating district-level data, which includes
+voting history and candidacy characteristics. In order to model the turnout, they
+look at nationwide swing voters and popular vote. In the article, they are quick
+to mention that point estimates are very challenging at the house level because they
+don’t follow a normal distribution. Hence, they use a “skew-T” model to allow for the long tails.
+Similar to FiveThirtyEight, the Economist undergoes thousands of simulations and
+uses their nation-wide level data to inform their distributions for each individual house race.</p>
+<p>I believe the Economist’s method is more precise because it is less reliant
+on local polling, which is subject to high variation and bias. I imagine that
+the Economist weights their polls by their internal ratings of the pollsters, but
+it was unclear from the article if they had as precise a method as FiveThirtyEight.</p>
+</div>
+<div id="extension-2model-improvements" class="section level1">
+<h1>Extension #2/Model Improvements</h1>
+<p>Examining variation in pollster quality</p>
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/poll%20ratings-1.png" width="672" /></p>
+<p>As these graphs show, 538 has higher ratings, on average, for their 2018 district-level polls than their generic polls in 2022. In both graphs, there is significant variation
+in poll ratings, ranging from about A+ to C/D or F.</p>
+<p>Next, I do some preliminary model building to see how well generic ballots performed
+using historical data dating back to 1946.</p>
+% Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
+% Date and time: Sun, Sep 25, 2022 - 14:48:22
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/predictions-1.png" width="672" /><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/predictions-2.png" width="672" /></p>
+<p>These graphs demonstrate that as an polls gets closer to the election date,
+the prediction error decreases. I have not yet weighted by the pollster rating
+because it was challenging to join properly, but intend to work on that in upcoming weeks.
+Similarly, I will think about whether or not I would like to do my model at the nationwide
+or state level, but wanted to work on building a national level model since the last
+blog used a state-by-state prediction</p>
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+</div>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/post/2022-09-15-blog-post-2-economy/" class="left arrow">&#8592;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+        		<footer>
+			
+			<span>
+			&copy; <time datetime="2022-09-25 14:48:28.347275 -0400 EDT m=&#43;0.144889335">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			</span>
+		</footer>
+
+    </body>
+</html>
