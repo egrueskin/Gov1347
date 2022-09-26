@@ -2,13 +2,16 @@
 title: "Polling"
 author: "R package build"
 date: "2022-09-23"
-slug: []
+output:
+  html_document:
+    df_print: paged
 categories: []
 summary: In this post, I look at the relationship between polling and US house voting
-  patterns. I begin with an analysis of midterm forecasting methods from 
-  FiveThirtyEight and The Economist and end with a new model for predicting 
-  popular vote house share in 2022.
+  patterns. I begin with an analysis of midterm forecasting methods from FiveThirtyEight
+  and The Economist and end with a new model for predicting popular vote house share
+  in 2022.
 tags: []
+slug: []
 ---
 
 # Intro
@@ -21,11 +24,11 @@ and incorporate nation-wide level economic data to build a nationwide
 vote share model. I will not include a part for the Ohio-01
 race because there has only been one poll so far.
 
-# Extension 1: Comparing FiveThirtyEight to the Economist
+# Extension 1: Comparing Midterm Forecasts: FiveThirtyEight vs The Economist
 
-**538 Model 
+** 538 Model 
 
-In FiveThirtyEight's methodology report about their 2022 2022 midterm forecasts, 
+In FiveThirtyEight's methodology report about their 2022 midterm forecasts, 
 they detail their three main models: Lite, Classic, and Deluxe. Classic, their
 main model, incorporates polling data, CANTOR (a system that uses inference to 
 get comparable polling stats from districts without polls), and Fundamentals(variables 
@@ -34,7 +37,7 @@ Their Lite model only uses Polls and CANTOR-based polling inference,
 while their Deluxe model is the Classic along with expert forecasts ratings
 for races.
 
-FiveThirtyEigjhty does not simply treat all polls as equal - they have a rigorous
+FiveThirtyEight does not simply treat all polls as equal - they have a rigorous
 process for rating polls based on how their methods, past performance, and company
 standards. Then, FiveThirtyEight weights polls in their models based off their rating.
 
@@ -45,7 +48,8 @@ into their overall distribution. While the article didn't go into specific detai
 on their simulation processes, it is important to note that their CANTOR machine
 simulates a grid of possible variables to model a variety of outcomes.
 
-* Economist Model
+** Economist Model
+
 The Economist uses many similar techniques to FiveThirtyEight, but appears to rely
 significantly less on local ballots and more on the generic ballot. 
 
@@ -63,12 +67,17 @@ don't follow a normal distribution. Hence, they use a "skew-T" model to allow fo
 Similar to FiveThirtyEight, the Economist undergoes thousands of simulations and
 uses their nation-wide level data to inform their distributions for each individual house race.
 
-*Overall Thoughts
+** Overall Thoughts
 
 I believe the Economist's method is more precise because it is less reliant
-on local polling, which is subject to high variation and bias. I imagine that 
-the Economist weights their polls by their internal ratings of the pollsters, but
-it was unclear from the article if they had as precise a method as FiveThirtyEight.
+on local polling, which is subject to high variation and bias. I also appreciated their careful discussion of simulating errors, as I believe that it can be tricky for an audience to understand the confidence interval around the point estimate.
+
+However, one potential problem with the Economist was that it was unclear from the article if they had as precise a method for ranking pollsters as FiveThirtyEight. I imagine they do, but wanted to flag it just in case.
+
+Both publications provide nuanced methods for forecasting electoral 
+races, particularly when the underlying data is sparse. Their trust in the generic
+ballot informs my next modeling section, where I incorporate generic ballot 
+averages into a model predicting Republican popular vote share years.
 
 
 # Extension #2/Model Improvements
@@ -137,16 +146,18 @@ ctrl <- trainControl(method = "LOOCV")
 
 #fit a regression model and use LOOCV to evaluate performance
 data=join%>%filter(year>1946)
-model <- train(R_vote~MidtermYear*president_party +
+model_train_1<- train(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2, data=data,method = "lm", trControl = ctrl,
     na.action = na.exclude)
-model2<- train(R_vote~MidtermYear*president_party +
+model_train_2<- train(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2+GDP_growth_pct, data=data,method = "lm", trControl = ctrl,
     na.action = na.exclude)
 
 #view summary of LOOCV               
-print(model)
-print(model2)
+print(model_train_1)
+print(model_train_2)
+model1<- lm(R_vote~MidtermYear*president_party +
+    log(days_until_election)+Rep_2, data=data)
 
 model2<- lm(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2+GDP_growth_pct, data=data)
@@ -172,13 +183,14 @@ join$pred<-predict(model2,join)
 
 
 ```{r,results='asis'}
-summary(model2)
-
+export_summs(model1,model2,model.names=c('Model 1','Model with Econ'))
 ```
 
 Surprisingly, the variable for logged days until election does not appear as significant
-in my regression output. Instead, the model detects that the Republican share (denoted as Rep_2),
-year status, presidential party, and gdp growth are most important. I have not yet weighted by the pollster rating
+in either regression output. Instead, the model detects that the Republican share (denoted as Rep_2),
+year status, presidential party, and gdp growth are most important. THe R2 increases by .01 between the two models, with the GDP growth coefficient appears significant in the second model. 
+
+I have not yet weighted by the pollster rating
 because it was challenging to join properly, but intend to work on that in upcoming weeks.
 Similarly, I will think about whether or not I would like to do my model at the nationwide
 or state level, but wanted to work on building a national level model since the last
@@ -195,9 +207,10 @@ rmse_gen<-sqrt(mean(gen_means$mean_gen_ballot-gen_means$R_vote,na.rm=T)^2)
 rmse_pred<-sqrt(mean(gen_means$pred-gen_means$R_vote,na.rm=T)^2)
 
 ggplot(data=gen_means)+geom_smooth(aes(x=year,y=mean_gen_ballot,col='Generic Ballot Avg \n in 20 days before election'))+
-  geom_smooth(aes(x=year,y=R_vote,col='Actual Share'))+
+  geom_smooth(aes(x=year,y=R_vote,col='Actual Result'))+
   geom_smooth(aes(x=year,y=pred,col='Predicted Share'))+
-  labs(y='Republican Vote Share',col='Calculated Through:')
+  labs(y='Republican Vote Share',col='Calculated Through:',
+  title='Republican Vote Share By Year and Prediction Method')
 
 ```
 
@@ -216,9 +229,9 @@ my predictions and the generic ballot averages vs. days before election.
 ggplot(data=poll_22%>% filter(days_until_election<200&days_until_election>0))+
   geom_smooth(aes(y=Rep_2,x=days_until_election),col='red')+
   geom_smooth(aes(y=pred,x=days_until_election),linetype='dashed',col='black')+
-  scale_x_reverse()+labs(col='Winner',y='Vote share',
+  scale_x_reverse()+labs(col='Winner',y='Anticipated Republican Vote share',
    title='Republican Vote Share by days until election',
-   subtitle='Dashed line represents model predictions, red line represents averages by generic ballot day')
+   subtitle='Dashed line represents model predictions, red line represents averages in generic ballot')
 
 ```
 
@@ -232,7 +245,10 @@ to properly weight generic ballot polling and include it in my state-level model
 
 #Appendix
 
-```{r}
+I have added a few graphs here to show more detail about the differences between
+my model and generic ballot averages. 
+
+```{r,message=FALSE,warning=FALSE}
 # Generic Ballot vs actual results
 ggplot(data=join%>% filter(MidtermYear==1&days_until_election<200&days_until_election>0))+
   geom_smooth(aes(y=Rep_2,x=days_until_election),col='red')+

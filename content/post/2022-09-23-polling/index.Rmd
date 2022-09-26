@@ -2,13 +2,16 @@
 title: "Polling"
 author: "R package build"
 date: "2022-09-23"
-slug: []
+output:
+  html_document:
+    df_print: paged
 categories: []
 summary: In this post, I look at the relationship between polling and US house voting
-  patterns. I begin with an analysis of midterm forecasting methods from 
-  FiveThirtyEight and The Economist and end with a new model for predicting 
-  popular vote house share in 2022.
+  patterns. I begin with an analysis of midterm forecasting methods from FiveThirtyEight
+  and The Economist and end with a new model for predicting popular vote house share
+  in 2022.
 tags: []
+slug: []
 ---
 
 # Intro
@@ -21,9 +24,9 @@ and incorporate nation-wide level economic data to build a nationwide
 vote share model. I will not include a part for the Ohio-01
 race because there has only been one poll so far.
 
-# Extension 1: Comparing FiveThirtyEight to the Economist
+# Extension 1: Comparing Midterm Forecasts: FiveThirtyEight vs The Economist
 
-**538 Model 
+** 538 Model 
 
 In FiveThirtyEight's methodology report about their 2022 midterm forecasts, 
 they detail their three main models: Lite, Classic, and Deluxe. Classic, their
@@ -143,16 +146,18 @@ ctrl <- trainControl(method = "LOOCV")
 
 #fit a regression model and use LOOCV to evaluate performance
 data=join%>%filter(year>1946)
-model <- train(R_vote~MidtermYear*president_party +
+model_train_1<- train(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2, data=data,method = "lm", trControl = ctrl,
     na.action = na.exclude)
-model2<- train(R_vote~MidtermYear*president_party +
+model_train_2<- train(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2+GDP_growth_pct, data=data,method = "lm", trControl = ctrl,
     na.action = na.exclude)
 
 #view summary of LOOCV               
-print(model)
-print(model2)
+print(model_train_1)
+print(model_train_2)
+model1<- lm(R_vote~MidtermYear*president_party +
+    log(days_until_election)+Rep_2, data=data)
 
 model2<- lm(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2+GDP_growth_pct, data=data)
@@ -178,12 +183,14 @@ join$pred<-predict(model2,join)
 
 
 ```{r,results='asis'}
-export_summs(model,model2,model.names=c('Model 1','Model with Econ'))
+export_summs(model1,model2,model.names=c('Model 1','Model with Econ'))
 ```
 
 Surprisingly, the variable for logged days until election does not appear as significant
 in either regression output. Instead, the model detects that the Republican share (denoted as Rep_2),
-year status, presidential party, and gdp growth are most important. I have not yet weighted by the pollster rating
+year status, presidential party, and gdp growth are most important. THe R2 increases by .01 between the two models, with the GDP growth coefficient appears significant in the second model. 
+
+I have not yet weighted by the pollster rating
 because it was challenging to join properly, but intend to work on that in upcoming weeks.
 Similarly, I will think about whether or not I would like to do my model at the nationwide
 or state level, but wanted to work on building a national level model since the last
@@ -200,9 +207,10 @@ rmse_gen<-sqrt(mean(gen_means$mean_gen_ballot-gen_means$R_vote,na.rm=T)^2)
 rmse_pred<-sqrt(mean(gen_means$pred-gen_means$R_vote,na.rm=T)^2)
 
 ggplot(data=gen_means)+geom_smooth(aes(x=year,y=mean_gen_ballot,col='Generic Ballot Avg \n in 20 days before election'))+
-  geom_smooth(aes(x=year,y=R_vote,col='Actual Share'))+
+  geom_smooth(aes(x=year,y=R_vote,col='Actual Result'))+
   geom_smooth(aes(x=year,y=pred,col='Predicted Share'))+
-  labs(y='Republican Vote Share',col='Calculated Through:')
+  labs(y='Republican Vote Share',col='Calculated Through:',
+  title='Republican Vote Share By Year and Prediction Method')
 
 ```
 
@@ -236,6 +244,9 @@ economic, and incumbency data. In the future weeks, I look forward to finding wa
 to properly weight generic ballot polling and include it in my state-level model.
 
 #Appendix
+
+I have added a few graphs here to show more detail about the differences between
+my model and generic ballot averages. 
 
 ```{r,message=FALSE,warning=FALSE}
 # Generic Ballot vs actual results
