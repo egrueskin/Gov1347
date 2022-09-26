@@ -5,7 +5,9 @@ date: "2022-09-23"
 slug: []
 categories: []
 summary: In this post, I look at the relationship between polling and US house voting
-  patterns.
+  patterns. I begin with an analysis of midterm forecasting methods from 
+  FiveThirtyEight and The Economist and end with a new model for predicting 
+  popular vote house share in 2022.
 tags: []
 ---
 
@@ -20,6 +22,8 @@ vote share model. I will not include a part for the Ohio-01
 race because there has only been one poll so far.
 
 # Extension 1: Comparing FiveThirtyEight to the Economist
+
+**538 Model 
 
 In FiveThirtyEight's methodology report about their 2022 2022 midterm forecasts, 
 they detail their three main models: Lite, Classic, and Deluxe. Classic, their
@@ -41,6 +45,7 @@ into their overall distribution. While the article didn't go into specific detai
 on their simulation processes, it is important to note that their CANTOR machine
 simulates a grid of possible variables to model a variety of outcomes.
 
+* Economist Model
 The Economist uses many similar techniques to FiveThirtyEight, but appears to rely
 significantly less on local ballots and more on the generic ballot. 
 
@@ -58,6 +63,7 @@ don't follow a normal distribution. Hence, they use a "skew-T" model to allow fo
 Similar to FiveThirtyEight, the Economist undergoes thousands of simulations and
 uses their nation-wide level data to inform their distributions for each individual house race.
 
+*Overall Thoughts
 
 I believe the Economist's method is more precise because it is less reliant
 on local polling, which is subject to high variation and bias. I imagine that 
@@ -112,7 +118,7 @@ Next, I do some preliminary model building to see how well generic ballots perfo
 using historical data dating back to 1946. 
 
 ```{r,message=FALSE,include=FALSE}
-
+# Join generic ballot polls to incumbent popular vote dataset
 join<-left_join(gen_poll,inc_pop_vote,by='year')%>%
   mutate(R_vote=case_when(winner_party.x=='R'~majorvote_pct,
                           TRUE~100-majorvote_pct),
@@ -123,6 +129,8 @@ join<-left_join(gen_poll,inc_pop_vote,by='year')%>%
 gdp<-read.csv('data/Copy of GDP_quarterly.csv')%>%
   mutate(ElectionYear=ifelse(year%%2,0,1))%>%
   filter(ElectionYear==1&quarter_cycle==7)
+
+# Join to gdp data
 join<-left_join(join,gdp,by='year')
 
 ctrl <- trainControl(method = "LOOCV")
@@ -139,11 +147,12 @@ model2<- train(R_vote~MidtermYear*president_party +
 #view summary of LOOCV               
 print(model)
 print(model2)
+
 model2<- lm(R_vote~MidtermYear*president_party +
     log(days_until_election)+Rep_2+GDP_growth_pct, data=data)
 
-lm1<-lm(R_vote~MidtermYear*president_party +
-    log(days_until_election)*Rep_2+GDP_growth_pct,data=join)
+# Building 2022 predictions dataset
+
 poll_22<-read.csv("data/538_generic_poll_2022.csv")
 poll_22<-poll_22 %>%
   mutate('Rep_2'=adjusted_rep/(adjusted_rep+adjusted_dem)*100)%>%
@@ -151,51 +160,55 @@ poll_22<-poll_22 %>%
 poll_22$president_party<-'D'
 poll_22$MidtermYear<-1
 poll_22$GDP_growth_pct<-1
-
 electionday<-as.Date('2022-11-09')
 poll_22$days_until_election<-as.numeric(difftime(electionday,poll_22$poll_date, units = "days"))
 poll_22$pred<-predict(model2,poll_22)
-join$pred<-predict(lm1,join)
+
+#adding historical predictions to dataset
+join$pred<-predict(model2,join)
 
 
 ```
 
 
 ```{r,results='asis'}
-
-stargazer(model2,type='latex')
-```
-
-
-```{r predictions,message=FALSE,warning=FALSE}
-
-ggplot(data=join%>% filter(MidtermYear==1&days_until_election<200&days_until_election>0))+
-  geom_smooth(aes(y=Rep_2,x=days_until_election),col='red')+
-  geom_smooth(aes(y=Dem_2,x=days_until_election),col='blue')+
-  geom_point(aes(x=0,y=majorvote_pct,col=winner_party.x))+
-   scale_color_manual(values=c("Blue",'Red'),labels=c('Dem','Rep'))+
-  scale_x_reverse()+facet_wrap(~year)+labs(col='Winner',y='Vote share',
-   title='Generic Ballot Vote Share by year and days until election',
-   subtitle='Lines represent generic ballot, Point at day 0 represent Actual results of Election')+
-  ylim(40,60)
-
-ggplot(data=join%>% filter(MidtermYear==1&ElectionYear.x==1&days_until_election<200&days_until_election>0))+
-  geom_smooth(aes(y=pred,x=days_until_election),col='red')+
-    geom_smooth(aes(y=(100-pred),x=days_until_election),col='blue')+
-  geom_point(aes(x=0,y=majorvote_pct,col=winner_party.x))+
-   scale_color_manual(values=c("Blue",'Red'),labels=c('Dem','Rep'))+
-  scale_x_reverse()+facet_wrap(~year)+labs(col='Winner',y='Vote share',
-   title='Generic Ballot Vote Share by year and days until election',
-   subtitle='Lines represent Predicted vote share, Point at day 0 represent Actual results of Election')+ylim(40,60)
+summary(model2)
 
 ```
 
-These graphs demonstrate that as an polls gets closer to the election date,
-the prediction error decreases. I have not yet weighted by the pollster rating
+Surprisingly, the variable for logged days until election does not appear as significant
+in my regression output. Instead, the model detects that the Republican share (denoted as Rep_2),
+year status, presidential party, and gdp growth are most important. I have not yet weighted by the pollster rating
 because it was challenging to join properly, but intend to work on that in upcoming weeks.
 Similarly, I will think about whether or not I would like to do my model at the nationwide
 or state level, but wanted to work on building a national level model since the last
 blog used a state-by-state prediction
+
+
+```{r predictions,message=FALSE,warning=FALSE}
+gen_means<-join %>% filter(days_until_election<20)%>%
+  group_by(year)%>%
+  summarise(mean_gen_ballot=mean(Rep_2,na.rm=T),
+            R_vote=mean(R_vote),
+            pred=mean(pred,na.rm=T))
+rmse_gen<-sqrt(mean(gen_means$mean_gen_ballot-gen_means$R_vote,na.rm=T)^2)
+rmse_pred<-sqrt(mean(gen_means$pred-gen_means$R_vote,na.rm=T)^2)
+
+ggplot(data=gen_means)+geom_smooth(aes(x=year,y=mean_gen_ballot,col='Generic Ballot Avg \n in 20 days before election'))+
+  geom_smooth(aes(x=year,y=R_vote,col='Actual Share'))+
+  geom_smooth(aes(x=year,y=pred,col='Predicted Share'))+
+  labs(y='Republican Vote Share',col='Calculated Through:')
+
+```
+
+These graphs demonstrate that my prediction was, on average, closer to the 
+actual results than simply looking at the average generic ballot, particularly in 
+years preceding 1980. In recent years, however, the lines appear very close,
+suggesting that there is  room for improvement in this nationwide model
+if I want it to be more predictive than the simple generic ballot average.
+
+Finally, I built a predicted Republican vote share for 2022, looking at
+my predictions and the generic ballot averages vs. days before election.
 
 ```{r,message=FALSE,warning=FALSE}
 
@@ -207,5 +220,38 @@ ggplot(data=poll_22%>% filter(days_until_election<200&days_until_election>0))+
    title='Republican Vote Share by days until election',
    subtitle='Dashed line represents model predictions, red line represents averages by generic ballot day')
 
+```
+
+#Conclusion
+
+In this post, I explored the differences in Congressional modeling between
+two of the leading forecasting publications: FiveThirtyEight and the Economist.
+Additionally, I worked on building a nationwide vote share model using polling,
+economic, and incumbency data. In the future weeks, I look forward to finding ways
+to properly weight generic ballot polling and include it in my state-level model.
+
+#Appendix
+
+```{r}
+# Generic Ballot vs actual results
+ggplot(data=join%>% filter(MidtermYear==1&days_until_election<200&days_until_election>0))+
+  geom_smooth(aes(y=Rep_2,x=days_until_election),col='red')+
+  geom_smooth(aes(y=Dem_2,x=days_until_election),col='blue')+
+  geom_point(aes(x=0,y=majorvote_pct,col=winner_party.x))+
+   scale_color_manual(values=c("Blue",'Red'),labels=c('Dem','Rep'))+
+  scale_x_reverse()+facet_wrap(~year)+labs(col='Winner',y='Vote share',
+   title='Generic Ballot Vote Share by year and days until election',
+   subtitle='Lines represent generic ballot, Point at day 0 represent Actual results of Election')+
+  ylim(40,60)
+
+#predictions vs actual results
+ggplot(data=join%>% filter(MidtermYear==1&ElectionYear.x==1&days_until_election<200&days_until_election>0))+
+         geom_smooth(aes(y=pred,x=days_until_election),col='red')+
+    geom_smooth(aes(y=(100-pred),x=days_until_election),col='blue')+
+  geom_point(aes(x=0,y=majorvote_pct,col=winner_party.x))+
+   scale_color_manual(values=c("Blue",'Red'),labels=c('Dem','Rep'))+
+  scale_x_reverse()+facet_wrap(~year)+labs(col='Winner',y='Vote share',
+   title='Predicted Vote Share by year and days until election',
+   subtitle='Lines represent Predicted vote share, Point at day 0 represent Actual results of Election')+ylim(40,60)
 ```
 

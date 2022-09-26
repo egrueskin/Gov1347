@@ -76,6 +76,7 @@ race because there has only been one poll so far.</p>
 </div>
 <div id="extension-1-comparing-fivethirtyeight-to-the-economist" class="section level1">
 <h1>Extension 1: Comparing FiveThirtyEight to the Economist</h1>
+<p>**538 Model</p>
 <p>In FiveThirtyEight’s methodology report about their 2022 2022 midterm forecasts,
 they detail their three main models: Lite, Classic, and Deluxe. Classic, their
 main model, incorporates polling data, CANTOR (a system that uses inference to
@@ -93,8 +94,11 @@ party’s direction. Similarly, their model projects turnout and includes these 
 into their overall distribution. While the article didn’t go into specific detail
 on their simulation processes, it is important to note that their CANTOR machine
 simulates a grid of possible variables to model a variety of outcomes.</p>
-<p>The Economist uses many similar techniques to FiveThirtyEight, but appears to rely
-significantly less on local ballots and more on the generic ballot.</p>
+<ul>
+<li>Economist Model
+The Economist uses many similar techniques to FiveThirtyEight, but appears to rely
+significantly less on local ballots and more on the generic ballot.</li>
+</ul>
 <p>Their approach begins at the nationwide-level, using the generic ballot results to detect the pulse of
 each party’s popularity. They also incorporate presidential approval, polarisation, and partisan lean
 into their voting-based predictors. Finally, this first stage model includes a series of
@@ -107,6 +111,7 @@ to mention that point estimates are very challenging at the house level because 
 don’t follow a normal distribution. Hence, they use a “skew-T” model to allow for the long tails.
 Similar to FiveThirtyEight, the Economist undergoes thousands of simulations and
 uses their nation-wide level data to inform their distributions for each individual house race.</p>
+<p>*Overall Thoughts</p>
 <p>I believe the Economist’s method is more precise because it is less reliant
 on local polling, which is subject to high variation and bias. I imagine that
 the Economist weights their polls by their internal ratings of the pollsters, but
@@ -120,16 +125,260 @@ it was unclear from the article if they had as precise a method as FiveThirtyEig
 in poll ratings, ranging from about A+ to C/D or F.</p>
 <p>Next, I do some preliminary model building to see how well generic ballots performed
 using historical data dating back to 1946.</p>
-% Table created by stargazer v.5.2.3 by Marek Hlavac, Social Policy Institute. E-mail: marek.hlavac at gmail.com
-% Date and time: Sun, Sep 25, 2022 - 14:48:22
-<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/predictions-1.png" width="672" /><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/predictions-2.png" width="672" /></p>
-<p>These graphs demonstrate that as an polls gets closer to the election date,
-the prediction error decreases. I have not yet weighted by the pollster rating
+<p>Call:
+lm(formula = R_vote ~ MidtermYear * president_party + log(days_until_election) +
+Rep_2 + GDP_growth_pct, data = data)</p>
+<p>Residuals:
+Min 1Q Median 3Q Max
+-7.0069 -1.3117 -0.1167 1.0055 5.9598</p>
+<p>Coefficients:
+Estimate Std. Error t value Pr(&gt;|t|)<br />
+(Intercept) 35.02784 0.53305 65.712 &lt; 2e-16 <strong><em>
+MidtermYear 3.97526 0.14537 27.345 &lt; 2e-16 </em></strong>
+president_partyR 2.00816 0.15657 12.826 &lt; 2e-16 <strong><em>
+log(days_until_election) -0.02900 0.03851 -0.753 0.452<br />
+Rep_2 0.26644 0.01014 26.267 &lt; 2e-16 </em></strong>
+GDP_growth_pct 0.06877 0.01151 5.972 2.74e-09 <strong><em>
+MidtermYear:president_partyR -6.06127 0.19682 -30.796 &lt; 2e-16 </em></strong>
+—
+Signif. codes: 0 ‘<em><strong>’ 0.001 ’</strong>’ 0.01 ’</em>’ 0.05 ‘.’ 0.1 ’ ’ 1</p>
+<p>Residual standard error: 2.07 on 2130 degrees of freedom
+(512 observations deleted due to missingness)
+Multiple R-squared: 0.5489, Adjusted R-squared: 0.5476
+F-statistic: 431.9 on 6 and 2130 DF, p-value: &lt; 2.2e-16</p>
+<p>Surprisingly, the variable for logged days until election does not appear as significant
+in my regression output. Instead, the model detects that the Republican share (denoted as Rep_2),
+year status, presidential party, and gdp growth are most important. I have not yet weighted by the pollster rating
 because it was challenging to join properly, but intend to work on that in upcoming weeks.
 Similarly, I will think about whether or not I would like to do my model at the nationwide
 or state level, but wanted to work on building a national level model since the last
 blog used a state-by-state prediction</p>
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/predictions-1.png" width="672" /></p>
+<p>These graphs demonstrate that my prediction was, on average, closer to the
+actual results than simply looking at the average generic ballot, particularly in
+years preceding 1980. In recent years, however, the lines appear very close,
+suggesting that there is room for improvement in this nationwide model
+if I want it to be more predictive than the simple generic ballot average.</p>
+<p>Finally, I built a predicted Republican vote share for 2022, looking at
+my predictions and the generic ballot averages vs. days before election.</p>
 <p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>#Conclusion</p>
+<p>In this post, I explored the differences in Congressional modeling between
+two of the leading forecasting publications: FiveThirtyEight and the Economist.
+Additionally, I worked on building a nationwide vote share model using polling,
+economic, and incumbency data. In the future weeks, I look forward to finding ways
+to properly weight generic ballot polling and include it in my state-level model.</p>
+<p>#Appendix</p>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: Removed 87 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -179.31</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 84.805</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 19826</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -179.31</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 84.805</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 19826</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -157.25</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 124.25</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 770.2</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -157.25</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 124.25</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 770.2</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -58.182</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 35.182</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 2.8308</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -58.182</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 35.182</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 2.8308</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: Removed 87 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -179.31</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 84.805</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 19826</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -179.31</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 84.805</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 19826</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -157.25</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 124.25</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 770.2</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -157.25</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 124.25</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 770.2</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : span too small. fewer data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : pseudoinverse used at -58.182</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : neighborhood radius 35.182</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : reciprocal condition number 0</code></pre>
+<pre><code>## Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
+## parametric, : There are other near singularities as well. 2.8308</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : span too small. fewer
+## data values than degrees of freedom.</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used at
+## -58.182</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
+## 35.182</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : reciprocal condition
+## number 0</code></pre>
+<pre><code>## Warning in predLoess(object$y, object$x, newx = if
+## (is.null(newdata)) object$x else if (is.data.frame(newdata))
+## as.matrix(model.frame(delete.response(terms(object)), : There are other near
+## singularities as well. 2.8308</code></pre>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_smooth).</code></pre>
+<pre><code>## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_smooth).</code></pre>
+<pre><code>## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf
+
+## Warning in max(ids, na.rm = TRUE): no non-missing arguments to max; returning
+## -Inf</code></pre>
+<pre><code>## Warning: Removed 39 rows containing missing values (geom_point).</code></pre>
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: Removed 39 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</code></pre>
+<pre><code>## Warning: Removed 39 rows containing non-finite values (stat_smooth).
+## Removed 39 rows containing missing values (geom_point).</code></pre>
+<p><img src="http://example.org/post/2022-09-23-polling/index_files/figure-html/unnamed-chunk-4-2.png" width="672" /></p>
 </div>
 
 
@@ -147,7 +396,7 @@ blog used a state-by-state prediction</p>
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-09-25 14:48:28.347275 -0400 EDT m=&#43;0.144889335">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-09-26 00:12:57.28221 -0400 EDT m=&#43;0.204100292">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
