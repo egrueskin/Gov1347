@@ -13,7 +13,7 @@ tags: []
 # Data
 
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(lubridate)
