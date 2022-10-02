@@ -3,7 +3,61 @@ title: Incumbency
 author: R package build
 date: '2022-10-01'
 slug: []
-summary: IN this post, I explore incumbency
+summary: In this post, I explore incumbency.
 categories: []
 tags: []
 ---
+
+# Intro
+
+# Data
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+require(ggplot2)
+require(sf)
+library(usmap)
+library(geomtextpath)
+library(ggmap)
+
+forecast_expert<-read.csv("Section data/District level forecast/expert_rating.csv")%>%
+  filter(year==2018)
+incumb_data<-read.csv("Section data/incumb_dist_1948-2020 (3).csv")%>%
+  filter(year==2018)%>% mutate(district=as.character(district_num))
+
+joined<-left_join(incumb_data,forecast_expert,by=c('year','state','district'='district'))
+
+
+
+get_congress_map <- function(cong=113) {
+  tmp_file <- tempfile()
+  tmp_dir  <- tempdir()
+  zp <- sprintf("http://cdmaps.polisci.ucla.edu/shp/districts%03i.zip",cong)
+  download.file(zp, tmp_file)
+  unzip(zipfile = tmp_file, exdir = tmp_dir)
+  fpath <- paste(tmp_dir, sprintf("districtShapes/districts%03i.shp",cong), sep = "/")
+  st_read(fpath)
+}
+
+cd114 <- get_congress_map(114)
+joined_2<-left_join(joined,cd114,by=c('state'='STATENAME','district'='DISTRICT'))%>%
+  filter(state %in% c('New Jersey','New York'))
+
+ggplot() + 
+  geom_sf(data=joined_2,aes(geometry = geometry,fill=RepVotesMajorPercent),
+          inherit.aes=FALSE,alpha=0.9) + 
+  scale_fill_gradient(low = "white", high = "black", limits=c(10,80)) +
+  theme_void() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) 
+```
+
+
+
