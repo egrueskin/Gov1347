@@ -5,23 +5,30 @@ date: "2022-10-07"
 slug: []
 categories: []
 summary: In this post, I look at the effects of campaign ads on predicting US house
-  elections through Extension #1.
+  elections through Extension
 tags: []
 ---
 
 # Intro
+
 In 2022 alone, over $6.4 billion has been spent on election ads, and AdImpact estimates this number will climb to $9.6 billion by the end of the 2022 cycle (CNBC). Campaign advertising has evolved from radio to tv and now to social media, making it hard to track in aggregates and particularly hard to causally identify its impact.
-
 Many political scientists have researched this relationship; specifically, Gerber et al. use a “spillover design” to test whether television ads persuade viewers in uncontested states. They find a statistically significant relationship via persuasion, but less so regarding mobilization (Gerber).
-
 Following this interesting result, I will use this blog post to explore whether campaign ads have effects at the district level in US house races between 2006-2018.
+
+I chose to keep the predictive model for 2018 because then I could properly test
+how they'd done and I wasn't confident that the ad data would transfer over well
+to 2022. Hence, I use my the data pre-2018 as my training dataset, holding out
+the 2018 data for my model validation.
 
 # Data
 
-My primary focus this week was reformatting my data to be in a longer format, such that each row represented a candidate for each cycle’s race. I began by reformatting the incumbency data and then joined that to data from state economic variables, generic ballots, and advertising information from the Wesleyan Media Project.
-The advertising data refers to all the tv ads during a candidate’s cycle, and includes data from the 2006-2018 cycles. Therefore, for this week’s modeling, I will only be using those cycles.
+My primary focus this week was reformatting my data to be in a longer format, such
+that each row represented a candidate for each cycle's race.  I began by reformatting
+the incumbency data and then joined that to data from state economic variables, 
+generic ballots, and advertising information from the Wesleyan Media Project.
 
-
+The advertising data refers to all the tv ads during a candidate's cycle. I did not include
+radio and social media ads due to constraints, but that would be very worthwhile too.
 
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -106,7 +113,7 @@ gen_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/da
 gen_poll_cl<-gen_poll %>% 
   filter(days_until_election<120)%>%
   group_by(year,party)%>%
-  summarise(per=mean(support))
+  summarise(party_support=mean(support))
 
 #Join datasets together
 dat<-left_join(dat_total_minus_gen,gen_poll_cl,by=c('cycle'='year','party'))%>%
@@ -125,129 +132,267 @@ dat<-dat %>%
   group_by(st_cd_fips,party)%>%
   arrange(cycle)%>%
   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
-         approval_cent=per-44.6)%>%
+         approval_cent=party_support-44.6)%>%
   ungroup()
-
-dat<- dat %>% mutate(sameParty=ifelse(party==president_party,1,0))
   
+dat<- dat %>% mutate(ads_comb=total_ads*stations,
+                    same_party=ifelse(party==president_party,1,0))
 
 ```
+
 # EDA
+
 To visualize the ad data, I perform a few exploratory plots.
 I begin with a visual of ad data, looking at ad data (total ads run and unique stations aired) over time. In my first plot, I look at the popular vote for a candidate versus their total ads, given that the candidate has at least 1 ad.
-In the second plot, I examine the same relationship for close races (margin of 10 percentage points). I also have it color coded for the percentage of the ads that were tagged “attack,” where the candidate was attacking their competitor. 
+In the second plot, I examine the same relationship for close races (margin of 10 percentage points). I also have it color coded for the percentage of the ads that were tagged “attack,” where the candidate was attacking their competitor
 
-```{r EDA}
-dat_total %>% filter(cycle==2018&total_ads>0)%>%
+```{r EDA,fig.height=2}
+dat %>% filter(total_ads>0)%>%
   ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+
-  facet_wrap(~party) + labs(title='Popular vote vs. total ads run, 2018')
-
-dat_total<- dat_total %>% mutate(ads_comb=total_ads*stations)
-
-dat_total %>% filter(pv2p>45&pv2p<55&cycle==2018&total_ads>0)%>%
-  ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+
-  facet_wrap(~party)+labs(title='Popular vote vs. total ads run, 2018')
-
-dat_total %>% filter(ads_comb>quantile(dat_total$ads_comb,.7,na.rm=T)&(pv2p>60|pv2p<40))%>% 
-  ggplot(aes(x=total_ads,y=pv2p,col=factor(party)))+geom_point()
-dat %>% filter(Uncontested==0&Unc_prev==0) %>%ggplot(aes(x=prev,y=party_wins,col=winner_party))+
-  geom_smooth()
-
+  facet_wrap(~party) + labs(title='Popular vote vs. total ads run')
+dat %>% filter(pv2p>45&pv2p<55&total_ads>0)%>%
+  ggplot(aes(x=total_ads,y=pv2p,size=stations,col=attack_ad_pct))+geom_point()+labs(title='Popular vote vs. total ads run in close races')
 ```
 
+<!-- # Intro -->
+<!-- In 2022 alone, over $6.4 billion has been spent on election ads, and AdImpact estimates this number will climb to $9.6 billion by the end of the 2022 cycle (CNBC). Campaign advertising has evolved from radio to tv and now to social media, making it hard to track in aggregates and particularly hard to causally identify its impact. -->
 
-# Model
+<!-- Many political scientists have researched this relationship; specifically, Gerber et al. use a “spillover design” to test whether television ads persuade viewers in uncontested states. They find a statistically significant relationship via persuasion, but less so regarding mobilization (Gerber). -->
 
-In building my models, I regress a binary of whether or not the candidate won their district a series of independent variables. I limited the dataset to prior to 2018, choosing to use that cycle as my “testing data.” I choose to use logistic regression to properly model this outcome. In my first model, I only use fundamental data, which includes: the party of the candidate, the party’s previous voteshare in that district, the state’s unemployment rate, whether the candidate is in the same party as the sitting president interacted by a factored variable for whether it’s a midterm year, and the amount of terms of the candidate (0 if challenger).
-In my next two models, I incorporate ad data. For the second regression, I only ad in a term for the total ads run by the candidate during that cylce. In the third regression, I also include a term for the total stations the ad aired on and the percentage of ads deemed “attack.” 
+<!-- Following this interesting result, I will use this blog post to explore whether campaign ads have effects at the district level in US house races between 2006-2018. -->
 
+<!-- # Data -->
 
-```{r model}
-
-# previous years 
-dat_test<-dat %>% filter(cycle=='2018'&Uncontested==0)
-dat_train<-dat %>% filter(cycle<'2018'&Uncontested==0)
-g0<-glm(party_wins~prev+
-          party+sameParty*(MidtermYear)+term+Unemployed_prct+per,
-        family=binomial(link=logit),data=dat_train)
-g1<-glm(party_wins~prev+
-          party+sameParty*(MidtermYear)+term,
-        family=binomial(link=logit),data=dat_train)
-g1<-glm(party_wins~prev:factor(Unc_prev)+
-          Unemployed_prct+
-          party:president_party+factor(MidtermYear)+Status+term+(per)+
-          ads_run+total_ads,family=binomial(link=logit),data=dat_train)
-
-g2<-glm(party_wins~prev:factor(Unc_prev)+
-          Unemployed_prct+
-          party:president_party+factor(MidtermYear)+Status+term+stations+
-          ads_run+total_ads,family=binomial(link=logit),data=dat_train)
-g2<-glm(party_wins~prev*factor(Unc_prev)+party:president_party:MidtermYear+term+Status+factor(Uncontested),family=binomial(link=logit),data=dat%>% filter(cycle<2018))
-
-g1<-glm(party_wins~party:president_party:MidtermYear+Status+term,family=binomial(link=logit),data=dat%>% filter(cycle<2018))
-g2<-glm(party_wins~party:president_party:MidtermYear+Status+term+ads_run+total_ads+Unemployed_prct,family=binomial(link=logit),data=dat%>% filter(cycle<2018))
-ggplot(data=dat_train,aes(x=predict(g0,dat_train,type='response'),y=pv2p))+geom_smooth()
+<!-- My primary focus this week was reformatting my data to be in a longer format, such that each row represented a candidate for each cycle’s race. I began by reformatting the incumbency data and then joined that to data from state economic variables, generic ballots, and advertising information from the Wesleyan Media Project. -->
+<!-- The advertising data refers to all the tv ads during a candidate’s cycle, and includes data from the 2006-2018 cycles. Therefore, for this week’s modeling, I will only be using those cycles. -->
 
 
-ggplot(data=dat_train,aes(x=predict(g2,dat_train,type='response'),y=party_wins))+geom_smooth()
-# AUC/Sensitivity/Specificity Function
-
-classification_table<-function(model){
-  dat_test$pred<-predict(model,dat_test,type='response')
-  classificationtable<-table(dat_test$party_wins,dat_test$pred > .5)
-  sensitivity<-(classificationtable[2,2]/(classificationtable[2,2]+classificationtable[2,1]))*100
-  specificity<-(classificationtable[1,1]/(classificationtable[1,1]+classificationtable[1,2]))*100
-  auc<-roc(dat_test$party_wins,dat_test$pred)
-  return(list('auc'=auc$auc,'sensitivity'=sensitivity,'specificity'=specificity))
-}
-
-models<-list('Fundamentals'=g0,'log2'=g2)
-tab<-sapply(models,classification_table)
-
-tab
 
 
-```
-As the second and third regression outputs demonstrate, the number of ads has a small positive correlation with ods of getting elected. The more important variables appear to be the fundamentals, including: the voteshare in the district the year prior, whether it’s a midterm year, whether the candidate represents the same party as the president, and the number of terms of the candidate. Unintuitively, there is a positive coefficient for unemployment, suggesting that the state-level unemployment may not be a strong predictor of a district’s outcome.
+<!-- ```{r setup, include=FALSE, warning=FALSE} -->
+<!-- knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE) -->
+<!-- library(tidyverse) -->
+<!-- library(lubridate) -->
+<!-- library(stargazer) -->
+<!-- library("rmarkdown") -->
+<!-- library("tinytex") -->
+<!-- library("stargazer") -->
+<!-- library("sandwich") -->
+<!-- library('patchwork') -->
+<!-- library('jtools') -->
+<!-- library('huxtable') -->
+<!-- library(usmap) -->
+<!-- library(geomtextpath) -->
+<!-- library(caret) -->
+<!-- library(pROC) -->
+
+<!-- # Read in ad data and merge -->
+<!-- # ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_2006_2018 (1).csv") -->
+<!-- # ads_issues<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_issues_2012-2018 (1).csv") -->
+<!-- # ads_joined<-left_join(ads,ads_issues,by=c('creative','market','dma','airdate','airtime', -->
+<!-- #       "state","race","district","party","ad_tone","ad_purpose",   -->
+<!-- #       "station","cycle" ,"st_fips","cd_fips","st_cd_fips")) -->
+<!-- # ads_joined %>% filter(is.na(est_cost))%>% nrow() -->
+<!-- # # Ads grouped by cycle, race, and party -->
+<!-- # ads_joined_group<-ads_joined %>% -->
+<!-- #   filter(!is.na(party))%>% -->
+<!-- #   group_by(cycle,st_cd_fips,party)%>% -->
+<!-- #   summarise(total_ads=n(), -->
+<!-- #             stations=sum(n_stations), -->
+<!-- #             attack_ad_pct=sum(ad_tone=='attack')/total_ads)%>% -->
+<!-- #   mutate(party=substr(party,1,1)) -->
+<!-- ads_joined_group<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/ads_joined_group.csv") -->
+
+<!-- # Read in incumbency, voting data and clean to wide format with data related to ads data -->
+
+<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv") -->
+<!-- inc_2<-inc %>% filter(year>2004&year<2020) %>%  -->
+<!--   select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>% -->
+<!--   mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0)) -->
+
+<!-- # Republican rows -->
+<!-- inc_2_rep<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent) -->
+<!-- # Dem rows -->
+<!-- inc_2_dem<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent) -->
+<!-- # Bind together -->
+<!-- inc_2_total<-bind_rows(inc_2_rep,inc_2_dem) -->
+<!-- inc_2_total<-inc_2_total %>% -->
+<!--   mutate(party=ifelse(is.na(RepVotesMajorPercent),'D','R'), -->
+<!--     CandidateName=ifelse(party=='R',RepCandidate,DemCandidate), -->
+<!--     Status=ifelse(party=='R',RepStatus,DemStatus), -->
+<!--     pv2p=ifelse(party=='R',RepVotesMajorPercent,DemVotesMajorPercent))%>% -->
+<!--   filter(pv2p!=0)%>% -->
+<!--   select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested, -->
+<!--          party,CandidateName,Status,pv2p) -->
 
 
-# Validation
+<!-- # Join to ads data -->
+<!-- dat_total<-full_join(ads_joined_group,inc_2_total, by=c('cycle'='year','st_cd_fips','party'))%>% -->
+<!--   filter(!is.na(winner_party)) -->
+<!-- dat_total<-dat_total %>% -->
+<!--   mutate(party_wins=ifelse(party==winner_party,1,0)) -->
 
-To check how well my models performed, I performed 3 main validation measures: 1) Plotting the actual results against my predictions on the Training dataset (2006-2016). 2) Built a classification model with area under the curve, sensitivity, and specificity measures 3) Plotted the actual results against my predictions on the testing dataset (2018)
-As the two graphs show, the models perform very similarly to eachother on both the testing and training datasets. Moreover, my classification table reports very similar results with auc, sensitivity (false positives), and specificity (false negatives). Therefore, I don’t have significant evidence that the ad variables added improvement to my models, but that may be due to my limitations. I grouped ad data by district, hence not capturing all the nuances of the dates they were aired. Similarly, there were many candidates who didn’t have ad data and the dataset was missing 2008 data.
+<!-- # Unemployment data -->
+<!-- unemp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_state/unemployment_state_monthly.csv') -->
 
-# Ohio 01 Section
-To end, I look at ad data in my district, Ohio 01. While there is not large amounts of data, these graphs show that Democrats and Republicans have been about equal in total ads and stations aired. However, Republicans have consistently used more attack ads.
+<!-- unemp_2 <- unemp %>%  -->
+<!--   filter(Year>2004&Year<2020) %>%  -->
+<!--   filter(!('FIPS Code'%in% c(11,51000)|'State and area'=='Los Angeles County'))%>%  -->
+<!--   mutate(ElectionYear=ifelse(Year%%2,0,1))%>% -->
+<!--   filter(ElectionYear==1)%>% -->
+<!--   filter(Month==10)%>% -->
+<!--   rename('state'='State and area') -->
+
+<!-- #Join datasets together -->
+<!-- dat_total_minus_gen<-left_join(dat_total,unemp_2,by=c('cycle'='Year','state')) -->
+
+<!-- # Generic polls -->
+<!-- gen_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv') -->
+<!-- gen_poll_cl<-gen_poll %>%  -->
+<!--   filter(days_until_election<120)%>% -->
+<!--   group_by(year,party)%>% -->
+<!--   summarise(per=mean(support)) -->
+
+<!-- #Join datasets together -->
+<!-- dat<-left_join(dat_total_minus_gen,gen_poll_cl,by=c('cycle'='year','party'))%>% -->
+<!--   mutate(MidtermYear=ifelse(cycle%%4,1,0)) %>%  -->
+<!-- mutate_if(is.numeric, ~replace(., is.na(.), 0))%>% -->
+<!--   mutate(ads_run=ifelse(total_ads>0,1,0)) -->
 
 
-# Conclusion
+<!-- dat<-dat %>% -->
+<!--   group_by(CandidateName)%>% -->
+<!--   arrange(cycle)%>% -->
+<!--   mutate(term=ifelse(Status=='Incumbent',cumsum(n()),0))%>% -->
+<!--   ungroup() -->
 
-Moving forward, I don't plan to use ads data because there isn't a comprehensive database
-for 2022 candidates. However, I think this exploration provided really interesting insight, 
-beginning to suggest that advertising has a positive significant impact on a candidate's
-odds of getting elected. 
+<!-- dat<-dat %>% -->
+<!--   group_by(st_cd_fips,party)%>% -->
+<!--   arrange(cycle)%>% -->
+<!--   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested), -->
+<!--          approval_cent=per-44.6)%>% -->
+<!--   ungroup() -->
 
-# Citations
+<!-- dat<- dat %>% mutate(sameParty=ifelse(party==president_party,1,0)) -->
 
-Alan S Gerber, James G Gimpel, Donald P Green, and Daron R Shaw. How Large and Long- lasting are the Persuasive Effects of Televised Campaign Ads? Results from a Randomized Field Experiment. American Political Science Review, 105(01):135–150, 2011.
 
-# Extra
-```{r extra}
-# 
-# # Pres polls
-# pres_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/approval_polllist.csv')
-# pres_poll_cl<-pres_poll%>% mutate(election_date=as.Date(election_date,format = "%m/%d/%y"),
-#                                   last_enddate=as.Date(last_enddate,format = "%m/%d/%y"))%>%
-#   mutate(days_until_election=difftime(election_date,last_enddate,units="days"))%>%
-#   filter(days_until_election<120)%>%
-#   filter(cycle>2000&!(state%in% c('National','District of Columbia')))%>%
-#   mutate(state=case_when(
-#     state%in% c('NE-1','NE-2','NE-3')~'Nebraska',
-#     state%in% c('ME-1','ME-2')~'Maine',
-#     TRUE~state
-#   ))%>%
-#   group_by(candidate_id,cycle,state,candidate_name)%>%
-#   summarise(approval=mean(pct_estimate))
-#     
-```
+<!-- ``` -->
+<!-- # EDA -->
+<!-- To visualize the ad data, I perform a few exploratory plots. -->
+<!-- I begin with a visual of ad data, looking at ad data (total ads run and unique stations aired) over time. In my first plot, I look at the popular vote for a candidate versus their total ads, given that the candidate has at least 1 ad. -->
+<!-- In the second plot, I examine the same relationship for close races (margin of 10 percentage points). I also have it color coded for the percentage of the ads that were tagged “attack,” where the candidate was attacking their competitor.  -->
+
+<!-- ```{r EDA} -->
+<!-- dat_total %>% filter(cycle==2018&total_ads>0)%>% -->
+<!--   ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+ -->
+<!--   facet_wrap(~party) + labs(title='Popular vote vs. total ads run, 2018') -->
+
+<!-- dat_total<- dat_total %>% mutate(ads_comb=total_ads*stations) -->
+
+<!-- dat_total %>% filter(pv2p>45&pv2p<55&cycle==2018&total_ads>0)%>% -->
+<!--   ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+ -->
+<!--   facet_wrap(~party)+labs(title='Popular vote vs. total ads run, 2018') -->
+
+<!-- dat_total %>% filter(ads_comb>quantile(dat_total$ads_comb,.7,na.rm=T)&(pv2p>60|pv2p<40))%>%  -->
+<!--   ggplot(aes(x=total_ads,y=pv2p,col=factor(party)))+geom_point() -->
+<!-- dat %>% filter(Uncontested==0&Unc_prev==0) %>%ggplot(aes(x=prev,y=party_wins,col=winner_party))+ -->
+<!--   geom_smooth() -->
+
+<!-- ``` -->
+
+
+<!-- # Model -->
+
+<!-- In building my models, I regress a binary of whether or not the candidate won their district a series of independent variables. I limited the dataset to prior to 2018, choosing to use that cycle as my “testing data.” I choose to use logistic regression to properly model this outcome. In my first model, I only use fundamental data, which includes: the party of the candidate, the party’s previous voteshare in that district, the state’s unemployment rate, whether the candidate is in the same party as the sitting president interacted by a factored variable for whether it’s a midterm year, and the amount of terms of the candidate (0 if challenger). -->
+<!-- In my next two models, I incorporate ad data. For the second regression, I only ad in a term for the total ads run by the candidate during that cylce. In the third regression, I also include a term for the total stations the ad aired on and the percentage of ads deemed “attack.”  -->
+
+
+<!-- ```{r model} -->
+
+<!-- # previous years  -->
+<!-- dat_test<-dat %>% filter(cycle=='2018'&Uncontested==0) -->
+<!-- dat_train<-dat %>% filter(cycle<'2018'&Uncontested==0) -->
+<!-- g0<-glm(party_wins~prev+ -->
+<!--           party+sameParty*(MidtermYear)+term+Unemployed_prct+per, -->
+<!--         family=binomial(link=logit),data=dat_train) -->
+<!-- g1<-glm(party_wins~prev+ -->
+<!--           party+sameParty*(MidtermYear)+term, -->
+<!--         family=binomial(link=logit),data=dat_train) -->
+<!-- g1<-glm(party_wins~prev:factor(Unc_prev)+ -->
+<!--           Unemployed_prct+ -->
+<!--           party:president_party+factor(MidtermYear)+Status+term+(per)+ -->
+<!--           ads_run+total_ads,family=binomial(link=logit),data=dat_train) -->
+
+<!-- g2<-glm(party_wins~prev:factor(Unc_prev)+ -->
+<!--           Unemployed_prct+ -->
+<!--           party:president_party+factor(MidtermYear)+Status+term+stations+ -->
+<!--           ads_run+total_ads,family=binomial(link=logit),data=dat_train) -->
+<!-- g2<-glm(party_wins~prev*factor(Unc_prev)+party:president_party:MidtermYear+term+Status+factor(Uncontested),family=binomial(link=logit),data=dat%>% filter(cycle<2018)) -->
+
+<!-- g1<-glm(party_wins~party:president_party:MidtermYear+Status+term,family=binomial(link=logit),data=dat%>% filter(cycle<2018)) -->
+<!-- g2<-glm(party_wins~party:president_party:MidtermYear+Status+term+ads_run+total_ads+Unemployed_prct,family=binomial(link=logit),data=dat%>% filter(cycle<2018)) -->
+<!-- ggplot(data=dat_train,aes(x=predict(g0,dat_train,type='response'),y=pv2p))+geom_smooth() -->
+
+
+<!-- ggplot(data=dat_train,aes(x=predict(g2,dat_train,type='response'),y=party_wins))+geom_smooth() -->
+<!-- # AUC/Sensitivity/Specificity Function -->
+
+<!-- classification_table<-function(model){ -->
+<!--   dat_test$pred<-predict(model,dat_test,type='response') -->
+<!--   classificationtable<-table(dat_test$party_wins,dat_test$pred > .5) -->
+<!--   sensitivity<-(classificationtable[2,2]/(classificationtable[2,2]+classificationtable[2,1]))*100 -->
+<!--   specificity<-(classificationtable[1,1]/(classificationtable[1,1]+classificationtable[1,2]))*100 -->
+<!--   auc<-roc(dat_test$party_wins,dat_test$pred) -->
+<!--   return(list('auc'=auc$auc,'sensitivity'=sensitivity,'specificity'=specificity)) -->
+<!-- } -->
+
+<!-- models<-list('Fundamentals'=g0,'log2'=g2) -->
+<!-- tab<-sapply(models,classification_table) -->
+
+<!-- tab -->
+
+
+<!-- ``` -->
+<!-- As the second and third regression outputs demonstrate, the number of ads has a small positive correlation with ods of getting elected. The more important variables appear to be the fundamentals, including: the voteshare in the district the year prior, whether it’s a midterm year, whether the candidate represents the same party as the president, and the number of terms of the candidate. Unintuitively, there is a positive coefficient for unemployment, suggesting that the state-level unemployment may not be a strong predictor of a district’s outcome. -->
+
+
+<!-- # Validation -->
+
+<!-- To check how well my models performed, I performed 3 main validation measures: 1) Plotting the actual results against my predictions on the Training dataset (2006-2016). 2) Built a classification model with area under the curve, sensitivity, and specificity measures 3) Plotted the actual results against my predictions on the testing dataset (2018) -->
+<!-- As the two graphs show, the models perform very similarly to eachother on both the testing and training datasets. Moreover, my classification table reports very similar results with auc, sensitivity (false positives), and specificity (false negatives). Therefore, I don’t have significant evidence that the ad variables added improvement to my models, but that may be due to my limitations. I grouped ad data by district, hence not capturing all the nuances of the dates they were aired. Similarly, there were many candidates who didn’t have ad data and the dataset was missing 2008 data. -->
+
+<!-- # Ohio 01 Section -->
+<!-- To end, I look at ad data in my district, Ohio 01. While there is not large amounts of data, these graphs show that Democrats and Republicans have been about equal in total ads and stations aired. However, Republicans have consistently used more attack ads. -->
+
+
+<!-- # Conclusion -->
+
+<!-- Moving forward, I don't plan to use ads data because there isn't a comprehensive database -->
+<!-- for 2022 candidates. However, I think this exploration provided really interesting insight,  -->
+<!-- beginning to suggest that advertising has a positive significant impact on a candidate's -->
+<!-- odds of getting elected.  -->
+
+<!-- # Citations -->
+
+<!-- Alan S Gerber, James G Gimpel, Donald P Green, and Daron R Shaw. How Large and Long- lasting are the Persuasive Effects of Televised Campaign Ads? Results from a Randomized Field Experiment. American Political Science Review, 105(01):135–150, 2011. -->
+
+<!-- # Extra -->
+<!-- ```{r extra} -->
+<!-- #  -->
+<!-- # # Pres polls -->
+<!-- # pres_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/approval_polllist.csv') -->
+<!-- # pres_poll_cl<-pres_poll%>% mutate(election_date=as.Date(election_date,format = "%m/%d/%y"), -->
+<!-- #                                   last_enddate=as.Date(last_enddate,format = "%m/%d/%y"))%>% -->
+<!-- #   mutate(days_until_election=difftime(election_date,last_enddate,units="days"))%>% -->
+<!-- #   filter(days_until_election<120)%>% -->
+<!-- #   filter(cycle>2000&!(state%in% c('National','District of Columbia')))%>% -->
+<!-- #   mutate(state=case_when( -->
+<!-- #     state%in% c('NE-1','NE-2','NE-3')~'Nebraska', -->
+<!-- #     state%in% c('ME-1','ME-2')~'Maine', -->
+<!-- #     TRUE~state -->
+<!-- #   ))%>% -->
+<!-- #   group_by(candidate_id,cycle,state,candidate_name)%>% -->
+<!-- #   summarise(approval=mean(pct_estimate)) -->
+<!-- #      -->
+<!-- ``` -->
 
