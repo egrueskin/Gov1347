@@ -159,7 +159,7 @@ dat %>% filter(Uncontested==0&Unc_prev==0) %>%ggplot(aes(x=prev,y=party_wins,col
 # Model
 
 In building my models, I regress a binary of whether or not the candidate won their district a series of independent variables. I limited the dataset to prior to 2018, choosing to use that cycle as my “testing data.” I choose to use logistic regression to properly model this outcome. In my first model, I only use fundamental data, which includes: the party of the candidate, the party’s previous voteshare in that district, the state’s unemployment rate, whether the candidate is in the same party as the sitting president interacted by a factored variable for whether it’s a midterm year, and the amount of terms of the candidate (0 if challenger).
-In my next two models, I incorporate ad data. For the second regression, I only ad in a term for the total ads run by the candidate during that cylce. In the third regression, I also include a term for the total stations the ad aired on and the percentage of ads deemed “attack.”
+In my next two models, I incorporate ad data. For the second regression, I only ad in a term for the total ads run by the candidate during that cylce. In the third regression, I also include a term for the total stations the ad aired on and the percentage of ads deemed “attack.” 
 
 
 ```{r model}
