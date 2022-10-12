@@ -5,22 +5,23 @@ date: "2022-10-07"
 slug: []
 categories: []
 summary: In this post, I look at the effects of campaign ads on predicting US house
-  elections.
+  elections through Extension #1.
 tags: []
 ---
 
 # Intro
-.. Over xx % of the average competitive campaign's budget goes to advertising...
+In 2022 alone, over $6.4 billion has been spent on election ads, and AdImpact estimates this number will climb to $9.6 billion by the end of the 2022 cycle (CNBC). Campaign advertising has evolved from radio to tv and now to social media, making it hard to track in aggregates and particularly hard to causally identify its impact.
 
+Many political scientists have researched this relationship; specifically, Gerber et al. use a “spillover design” to test whether television ads persuade viewers in uncontested states. They find a statistically significant relationship via persuasion, but less so regarding mobilization (Gerber).
+
+Following this interesting result, I will use this blog post to explore whether campaign ads have effects at the district level in US house races between 2006-2018.
 
 # Data
 
-My primary focus this week was reformatting my data to be in a longer format, such
-that each row represented a candidate for each cycle's race.  I began by reformatting
-the incumbency data and then joined that to data from state economic variables, 
-generic ballots, and advertising information from the Wesleyan Media Project.
+My primary focus this week was reformatting my data to be in a longer format, such that each row represented a candidate for each cycle’s race. I began by reformatting the incumbency data and then joined that to data from state economic variables, generic ballots, and advertising information from the Wesleyan Media Project.
+The advertising data refers to all the tv ads during a candidate’s cycle, and includes data from the 2006-2018 cycles. Therefore, for this week’s modeling, I will only be using those cycles.
 
-The advertising data refers to all the tv ads during a candidate's cycle. 
+
 
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -126,11 +127,15 @@ dat<-dat %>%
   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
          approval_cent=per-44.6)%>%
   ungroup()
+
+dat<- dat %>% mutate(sameParty=ifelse(party==president_party,1,0))
   
-rm(ads)
-rm(ads_issues)
 
 ```
+# EDA
+To visualize the ad data, I perform a few exploratory plots.
+I begin with a visual of ad data, looking at ad data (total ads run and unique stations aired) over time. In my first plot, I look at the popular vote for a candidate versus their total ads, given that the candidate has at least 1 ad.
+In the second plot, I examine the same relationship for close races (margin of 10 percentage points). I also have it color coded for the percentage of the ads that were tagged “attack,” where the candidate was attacking their competitor. 
 
 ```{r EDA}
 dat_total %>% filter(cycle==2018&total_ads>0)%>%
@@ -153,13 +158,20 @@ dat %>% filter(Uncontested==0&Unc_prev==0) %>%ggplot(aes(x=prev,y=party_wins,col
 
 # Model
 
+In building my models, I regress a binary of whether or not the candidate won their district a series of independent variables. I limited the dataset to prior to 2018, choosing to use that cycle as my “testing data.” I choose to use logistic regression to properly model this outcome. In my first model, I only use fundamental data, which includes: the party of the candidate, the party’s previous voteshare in that district, the state’s unemployment rate, whether the candidate is in the same party as the sitting president interacted by a factored variable for whether it’s a midterm year, and the amount of terms of the candidate (0 if challenger).
+In my next two models, I incorporate ad data. For the second regression, I only ad in a term for the total ads run by the candidate during that cylce. In the third regression, I also include a term for the total stations the ad aired on and the percentage of ads deemed “attack.”
+
+
 ```{r model}
 
 # previous years 
 dat_test<-dat %>% filter(cycle=='2018'&Uncontested==0)
 dat_train<-dat %>% filter(cycle<'2018'&Uncontested==0)
-g0<-glm(party_wins~prev:factor(Unc_prev)+
-          party:president_party+factor(MidtermYear)+Status+term,
+g0<-glm(party_wins~prev+
+          party+sameParty*(MidtermYear)+term+Unemployed_prct+per,
+        family=binomial(link=logit),data=dat_train)
+g1<-glm(party_wins~prev+
+          party+sameParty*(MidtermYear)+term,
         family=binomial(link=logit),data=dat_train)
 g1<-glm(party_wins~prev:factor(Unc_prev)+
           Unemployed_prct+
@@ -189,19 +201,38 @@ classification_table<-function(model){
   return(list('auc'=auc$auc,'sensitivity'=sensitivity,'specificity'=specificity))
 }
 
-models<-list('log1'=g1,'log2'=g2)
+models<-list('Fundamentals'=g0,'log2'=g2)
 tab<-sapply(models,classification_table)
 
-
+tab
 
 
 ```
+As the second and third regression outputs demonstrate, the number of ads has a small positive correlation with ods of getting elected. The more important variables appear to be the fundamentals, including: the voteshare in the district the year prior, whether it’s a midterm year, whether the candidate represents the same party as the president, and the number of terms of the candidate. Unintuitively, there is a positive coefficient for unemployment, suggesting that the state-level unemployment may not be a strong predictor of a district’s outcome.
 
-# Results 
 
+# Validation
+
+To check how well my models performed, I performed 3 main validation measures: 1) Plotting the actual results against my predictions on the Training dataset (2006-2016). 2) Built a classification model with area under the curve, sensitivity, and specificity measures 3) Plotted the actual results against my predictions on the testing dataset (2018)
+As the two graphs show, the models perform very similarly to eachother on both the testing and training datasets. Moreover, my classification table reports very similar results with auc, sensitivity (false positives), and specificity (false negatives). Therefore, I don’t have significant evidence that the ad variables added improvement to my models, but that may be due to my limitations. I grouped ad data by district, hence not capturing all the nuances of the dates they were aired. Similarly, there were many candidates who didn’t have ad data and the dataset was missing 2008 data.
+
+# Ohio 01 Section
+To end, I look at ad data in my district, Ohio 01. While there is not large amounts of data, these graphs show that Democrats and Republicans have been about equal in total ads and stations aired. However, Republicans have consistently used more attack ads.
+
+
+# Conclusion
+
+Moving forward, I don't plan to use ads data because there isn't a comprehensive database
+for 2022 candidates. However, I think this exploration provided really interesting insight, 
+beginning to suggest that advertising has a positive significant impact on a candidate's
+odds of getting elected. 
+
+# Citations
+
+Alan S Gerber, James G Gimpel, Donald P Green, and Daron R Shaw. How Large and Long- lasting are the Persuasive Effects of Televised Campaign Ads? Results from a Randomized Field Experiment. American Political Science Review, 105(01):135–150, 2011.
 
 # Extra
-```{r}
+```{r extra}
 # 
 # # Pres polls
 # pres_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/approval_polllist.csv')
@@ -220,14 +251,3 @@ tab<-sapply(models,classification_table)
 #     
 ```
 
-
-# Conclusion
-
-Moving forward, I don't plan to use ads data because there isn't a comprehensive database
-for 2022 candidates. However, I think this exploration provided really interesting insight, 
-beginning to suggest that advertising has a positive significant impact on a candidate's
-odds of getting elected. 
-
-# Citations
-
-Alan S Gerber, James G Gimpel, Donald P Green, and Daron R Shaw. How Large and Long- lasting are the Persuasive Effects of Televised Campaign Ads? Results from a Randomized Field Experiment. American Political Science Review, 105(01):135–150, 2011.

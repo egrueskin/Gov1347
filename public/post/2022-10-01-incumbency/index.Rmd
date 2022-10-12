@@ -174,11 +174,7 @@ stargazer(lm_Rep_incumbent,lm_Dem_incumbent,
 ```
 
 As this regression output table shows, the model had the highest R^2 in 2018, 
-<<<<<<< HEAD
 followed by times where the Incumbent was Democrat or the entire dataset, followed by the times the 
-=======
-followed by times where the Incumbent was Democrat, followed by the times the 
->>>>>>> a129efeef1dfe94a514add0bb5e6624858b24a74
 incumbent was republican. I chose to center average rating around 0, such that
 I could interpret the results more directionally. In each model, any movement 
 above tossup towards Republican is associated with about a 2-3 percentage points higher
