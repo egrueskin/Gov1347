@@ -2,19 +2,41 @@
 title: Incumbency
 author: R package build
 date: '2022-10-01'
+output:
+  html_document: default
+  pdf_document: default
 slug: []
-summary: In this post, I explore incumbency.
 categories: []
+summary: In this post, I explore expert electoral ratings, with a particular focus on Incumbency.
 tags: []
 ---
 
 # Intro
+Prior to each election, many publications like the Cook Political Report, Crystal Ball, and CQ politics build a partisan rating, or metric for where the district is politically
+aligned. The scale frequently takes the form of: Solid D/R, Likely D/R, Lean D/R, 
+and tossup. In calculating these indices, the Cook Report specifically looks at the
+difference between the district's presidential vote results to the nationwide average. ("The Cook")
+Other publications use similar methodologies, adding in variables like the generic ballot and local polling. 
+
+In this blog post, I am interested in exploring Extension #1 to see how well 
+the expert predictions fared in 2018 elections. Instead of focusing on any specific 
+publication, I will compare the average rating across the following publications:
+Cook Political Report, Rotehnberg, CQ Politics, Sabato's Crystal Ball, and Real 
+Clear Politics.
+
+
 
 # Data
+
+To examine the accuracy of expert predictions, I merged three main datasets:
+the expert predictions on competitive US House races from a variety of sources, the actual results of the elections, and the congressional maps. The average ratings
+were pooled from Cook, Rothenberg, CQ Politics, Sabato's Crystal ball, and Real Clear Politics.
 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(htmlTable)
+library(stargazer)
 library(tidyverse)
 library(lubridate)
 require(ggplot2)
@@ -22,11 +44,11 @@ require(sf)
 library(usmap)
 library(geomtextpath)
 library(ggmap)
+library(rmapshaper)
 
-forecast_expert<-read.csv("Section data/District level forecast/expert_rating.csv")%>%
-  filter(year==2018)
+forecast_expert<-read.csv("Section data/District level forecast/expert_rating.csv")
 incumb_data<-read.csv("Section data/incumb_dist_1948-2020 (3).csv")%>%
-  filter(year==2018)%>% mutate(district=as.character(district_num))
+  mutate(district=as.character(district_num))
 
 joined<-left_join(incumb_data,forecast_expert,by=c('year','state','district'='district'))
 
@@ -43,21 +65,201 @@ get_congress_map <- function(cong=113) {
 }
 
 cd114 <- get_congress_map(114)
-joined_2<-left_join(joined,cd114,by=c('state'='STATENAME','district'='DISTRICT'))%>%
-  filter(state %in% c('New Jersey','New York'))
+districts_simp <- rmapshaper::ms_simplify(cd114, keep = 0.01)
+
+dat<-left_join(joined,districts_simp,by=c('state'='STATENAME','district'='DISTRICT'))%>%
+  mutate(Incumbent_party=ifelse(RepStatus=='Incumbent','R','D'))
+dat<-dat %>%
+  mutate(Avg_rating_code=case_when(
+    avg_rating<1.5~ 'Solid D',
+    avg_rating>=1.5&avg_rating<2.5 ~ 'Likely D',
+    avg_rating>=2.5&avg_rating<3.5  ~ 'Lean D',
+    avg_rating>=3.5&avg_rating<4.5 ~ 'Toss up',
+    avg_rating>=4.5&avg_rating<5.5 ~ 'Lean R',
+    avg_rating>=5.5&avg_rating<6.5 ~ 'Likely R',
+    avg_rating>=6.5 ~ 'Solid R',
+  ),Avg_rating_code=factor(Avg_rating_code,
+     levels=c('Solid D','Likely D','Lean D', 'Toss up','Lean R','Likely R','Solid R')))
+
+dat_18<-dat %>% filter(year==2018)
+
+```
+
+# Extension 1
+
+Below, I map  the Republican voteshare by district in 2018, where blue values
+correspond to Democrat wins, red values are Republican wins, and purple values are
+closer margins.
+
+```{r Map, message=FALSE,warning=FALSE}
 
 ggplot() + 
-  geom_sf(data=joined_2,aes(geometry = geometry,fill=RepVotesMajorPercent),
+  geom_sf(data=dat_18,aes(fill=RepVotesMajorPercent,geometry=geometry),
           inherit.aes=FALSE,alpha=0.9) + 
-  scale_fill_gradient(low = "white", high = "black", limits=c(10,80)) +
+  scale_fill_gradient(low = "blue", high = "red", limits=c(0,90)) +
+  coord_sf(xlim = c(-172.27, -66.57), ylim = c(18.55, 71.23), expand = FALSE) +  
   theme_void() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank(),
         axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank()) 
+        axis.ticks.y=element_blank())+
+  labs(fill='Rep Vote',title='Republican voteshare by district in 2018')
+
+
+  
 ```
 
+To test how well these predictions did, I looked at the acutal results below.
+
+```{r comparisons, message=FALSE,warning=FALSE}
+ggplot(data=dat_18 %>% filter(!is.na(avg_rating)),
+  aes(x=avg_rating,y=RepVotesMajorPercent,label=district_id))+
+  geom_point(aes(color=winner_party))+
+  geom_text(check_overlap=TRUE)+
+  facet_wrap(~Incumbent_party,labeller=as_labeller(label_both))+
+  scale_color_manual(values=c('blue','red'))+
+  labs('Actual voteshare vs. rating by status of incumbency')
+
+dat_18 %>%filter(!is.na(avg_rating))%>%
+  group_by(Avg_rating_code)%>%
+  summarise('Dem_Win'=sum(winner_party=='D'),
+            'Rep_Win'=sum(winner_party=='R'),
+            Dem_pct=Dem_Win/(Dem_Win+Rep_Win),
+            Rep_pct=Dem_Win/(Dem_Win+Rep_Win))%>%
+  mutate(across(where(is.numeric),round,3))%>%
+  htmlTable(title='Results Table')
 
 
+
+```
+
+As evident in the figure and table above, the average expert predictions fared very
+well in 2018, with only 5 out or 70 non-tossup races going to the other candidate.
+
+Next, I examined this from a modeling perspective, looking at data from 2014 to 2020. 
+I chose to start at 2014 because that was the last time these specific congressional 
+maps were in use. 
+
+```{r modeling, message=FALSE,warning=FALSE}
+
+all_2018<-read.csv('Section data/2018_ratings_share.csv')
+
+dat_post_redist<-dat %>% filter(year>2013&!is.na(avg_rating))
+ggplot(data=dat_post_redist,
+  aes(x=avg_rating,y=RepVotesMajorPercent,label=district_id))+
+  geom_point(aes(color=winner_party))+
+  geom_text(check_overlap=TRUE)+
+  facet_wrap(~year)+
+  scale_color_manual(values=c('blue','red'))
+
+lm_all<-lm(RepVotesMajorPercent~I(avg_rating-4),data=dat_post_redist)
+lm_Rep_incumbent<-lm(RepVotesMajorPercent~I(avg_rating-4),data=dat_post_redist%>%
+             filter(Incumbent_party=='R'))
+lm_Dem_incumbent<-lm(RepVotesMajorPercent~I(avg_rating-4),data=dat_post_redist%>%
+             filter(Incumbent_party=='D'))
+lm_2018<-lm(RepVotesMajorPercent~I(avg_rating-4),data=dat_18)
+
+
+stargazer(lm_all,lm_2018,
+          column.labels=c("All years","2018"),
+          type = "text",  digits=2, title='Results by Year',out="table1.txt")
+
+
+stargazer(lm_Rep_incumbent,lm_Dem_incumbent,
+          column.labels=c("R Incumbent","D Incumbent"),
+          type = "text",  title='Results by Incumbent Party',digits=2, out="table1.txt")
+## 82% of variation
+```
+
+As this regression output table shows, the model had the highest R^2 in 2018, 
+<<<<<<< HEAD
+followed by times where the Incumbent was Democrat or the entire dataset, followed by the times the 
+=======
+followed by times where the Incumbent was Democrat, followed by the times the 
+>>>>>>> a129efeef1dfe94a514add0bb5e6624858b24a74
+incumbent was republican. I chose to center average rating around 0, such that
+I could interpret the results more directionally. In each model, any movement 
+above tossup towards Republican is associated with about a 2-3 percentage points higher
+Republican vote margin. Moving forward, I think it would be useful to play around 
+with transformations, like polynomials and logs to better account for the non-linear
+trends after centering.
+
+Next, I look at how well this model would've performed on 2022 data had we 
+excluded it from my model. 
+
+```{r testing,message=FALSE,warning=FALSE}
+dat_2020<-dat_post_redist %>% filter(year==2020)
+dat_pre_20<-dat_post_redist %>% filter(year<2020)
+lm2<-lm(RepVotesMajorPercent~I(avg_rating-4),data=dat_pre_20)
+dat_2020$pred<-predict(lm2,dat_2020)
+ggplot(dat_2020,aes(y=RepVotesMajorPercent,x=pred,label=district_id))+
+  geom_point(aes(col=winner_party))+geom_text(check_overlap=TRUE)+
+    scale_color_manual(values=c('blue','red'))+
+  labs(title='Actual Republican vote share vs Predicted')
+
+```
+As this graph shows, there was only one case where the model predicted a margin
+difference of greater than .5 and the election went the other way. Hence,
+this model provided strong accuracy in 2020, but since this is only one year, 
+further cross validation would be necessary to truly test the model. 
+
+# Forecast Update 
+
+For this week's update, I return to my district: OH-01, using Kiara's helpful section code.
+
+```{r model full,message=FALSE,warning=FALSE}
+dist_polls_2018_2022 <- read_csv("Section data/dist_polls_2018-2022.csv")
+
+# subset
+polls_df <- dist_polls_2018_2022 %>%
+  select(pollster, sponsors, display_name, fte_grade,
+         start_date, end_date, sample_size, population, cycle, election_date,
+         party, candidate_name, pct, st_cd_fips) %>%
+  rename('year' = 'cycle') %>%
+  filter(st_cd_fips == '3901')
+incumb_df <- read_csv("Section data/incumb_dist_1948-2020 (3).csv")
+expert_ohio <- forecast_expert %>% filter(state=='Ohio'&year>2016&district==1)
+# filter for specific district and year
+oh <- NA
+oh <- incumb_df %>%
+  filter(year>2016, st_cd_fips == '3901')
+
+# join by 'year'
+oh <- left_join(oh, polls_df)
+oh<-left_join(oh,expert_ohio)
+
+# code new incumbent variable
+oh <- oh %>%
+              mutate(INCUMB = case_when(winner_party == 'R' & RepStatus == 'Incumbent' ~  TRUE,
+                              winner_party == 'D' & DemStatus == 'Incumbent' ~ TRUE,
+                              winner_party == 'R' & RepStatus == 'Challenger' ~  FALSE,
+                              winner_party == 'D' & DemStatus == 'Challenger' ~  FALSE))
+
+# fit lm
+dat_poll_inc <- oh[oh$INCUMB,]
+
+mod_poll_inc_1 <- lm(RepVotesMajorPercent ~ pct, data = dat_poll_inc%>% filter(year<2022))
+mod_poll_inc_2 <- lm(RepVotesMajorPercent ~ pct*cook, data = dat_poll_inc%>% filter(year<2022))
+
+oh_22 <- polls_df %>%
+  filter(st_cd_fips == '3901', year == 2022, party == 'REP')%>%
+  mutate(cook=4)
+
+pred_poll_inc <- predict(mod_poll_inc_1, oh_22, 
+                          interval = "prediction", level=0.95)
+pred_poll_inc_2 <- predict(mod_poll_inc_2, oh_22, 
+                          interval = "prediction", level=0.95)
+pred_poll_inc
+pred_poll_inc_2
+
+
+```
+Here, I calculated two prediction margins: one modeled based on polling and one based on  polling and the Cook rating. In each case, I predict that Chabot will win with a small margin. However, my model including the Cook rating does not seem sound because
+it has so few data points to work through, so it doesn't have enough fit details to run an interval. Therefore, in the upcoming weeks, I will work on including more data (through Chabot's whole term dating back to the 1990's) 
+to better model these two variables.
+
+# References
+
+“The Cook Political Report's Partisan Voter Index.” Ballotpedia, https://ballotpedia.org/The_Cook_Political_Report%27s_Partisan_Voter_Index. 
