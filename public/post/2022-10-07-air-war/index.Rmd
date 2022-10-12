@@ -1,0 +1,233 @@
+---
+title: "Air War"
+author: "R package build"
+date: "2022-10-07"
+slug: []
+categories: []
+summary: In this post, I look at the effects of campaign ads on predicting US house
+  elections.
+tags: []
+---
+
+# Intro
+.. Over xx % of the average competitive campaign's budget goes to advertising...
+
+
+# Data
+
+My primary focus this week was reformatting my data to be in a longer format, such
+that each row represented a candidate for each cycle's race.  I began by reformatting
+the incumbency data and then joined that to data from state economic variables, 
+generic ballots, and advertising information from the Wesleyan Media Project.
+
+The advertising data refers to all the tv ads during a candidate's cycle. 
+
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE)
+library(tidyverse)
+library(lubridate)
+library(stargazer)
+library("rmarkdown")
+library("tinytex")
+library("stargazer")
+library("sandwich")
+library('patchwork')
+library('jtools')
+library('huxtable')
+library(usmap)
+library(geomtextpath)
+library(caret)
+library(pROC)
+
+# Read in ad data and merge
+# ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_2006_2018 (1).csv")
+# ads_issues<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_issues_2012-2018 (1).csv")
+# ads_joined<-left_join(ads,ads_issues,by=c('creative','market','dma','airdate','airtime',
+#       "state","race","district","party","ad_tone","ad_purpose",  
+#       "station","cycle" ,"st_fips","cd_fips","st_cd_fips"))
+# ads_joined %>% filter(is.na(est_cost))%>% nrow()
+# # Ads grouped by cycle, race, and party
+# ads_joined_group<-ads_joined %>%
+#   filter(!is.na(party))%>%
+#   group_by(cycle,st_cd_fips,party)%>%
+#   summarise(total_ads=n(),
+#             stations=sum(n_stations),
+#             attack_ad_pct=sum(ad_tone=='attack')/total_ads)%>%
+#   mutate(party=substr(party,1,1))
+ads_joined_group<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/ads_joined_group.csv")
+
+# Read in incumbency, voting data and clean to wide format with data related to ads data
+
+inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
+inc_2<-inc %>% filter(year>2004&year<2020) %>% 
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>%
+  mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
+
+# Republican rows
+inc_2_rep<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+# Dem rows
+inc_2_dem<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+# Bind together
+inc_2_total<-bind_rows(inc_2_rep,inc_2_dem)
+inc_2_total<-inc_2_total %>%
+  mutate(party=ifelse(is.na(RepVotesMajorPercent),'D','R'),
+    CandidateName=ifelse(party=='R',RepCandidate,DemCandidate),
+    Status=ifelse(party=='R',RepStatus,DemStatus),
+    pv2p=ifelse(party=='R',RepVotesMajorPercent,DemVotesMajorPercent))%>%
+  filter(pv2p!=0)%>%
+  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+         party,CandidateName,Status,pv2p)
+
+
+# Join to ads data
+dat_total<-full_join(ads_joined_group,inc_2_total, by=c('cycle'='year','st_cd_fips','party'))%>%
+  filter(!is.na(winner_party))
+dat_total<-dat_total %>%
+  mutate(party_wins=ifelse(party==winner_party,1,0))
+
+# Unemployment data
+unemp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_state/unemployment_state_monthly.csv')
+
+unemp_2 <- unemp %>% 
+  filter(Year>2004&Year<2020) %>% 
+  filter(!('FIPS Code'%in% c(11,51000)|'State and area'=='Los Angeles County'))%>% 
+  mutate(ElectionYear=ifelse(Year%%2,0,1))%>%
+  filter(ElectionYear==1)%>%
+  filter(Month==10)%>%
+  rename('state'='State and area')
+
+#Join datasets together
+dat_total_minus_gen<-left_join(dat_total,unemp_2,by=c('cycle'='Year','state'))
+
+# Generic polls
+gen_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv')
+gen_poll_cl<-gen_poll %>% 
+  filter(days_until_election<120)%>%
+  group_by(year,party)%>%
+  summarise(per=mean(support))
+
+#Join datasets together
+dat<-left_join(dat_total_minus_gen,gen_poll_cl,by=c('cycle'='year','party'))%>%
+  mutate(MidtermYear=ifelse(cycle%%4,1,0)) %>% 
+mutate_if(is.numeric, ~replace(., is.na(.), 0))%>%
+  mutate(ads_run=ifelse(total_ads>0,1,0))
+
+
+dat<-dat %>%
+  group_by(CandidateName)%>%
+  arrange(cycle)%>%
+  mutate(term=ifelse(Status=='Incumbent',cumsum(n()),0))%>%
+  ungroup()
+
+dat<-dat %>%
+  group_by(st_cd_fips,party)%>%
+  arrange(cycle)%>%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
+         approval_cent=per-44.6)%>%
+  ungroup()
+  
+rm(ads)
+rm(ads_issues)
+
+```
+
+```{r EDA}
+dat_total %>% filter(cycle==2018&total_ads>0)%>%
+  ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+
+  facet_wrap(~party) + labs(title='Popular vote vs. total ads run, 2018')
+
+dat_total<- dat_total %>% mutate(ads_comb=total_ads*stations)
+
+dat_total %>% filter(pv2p>45&pv2p<55&cycle==2018&total_ads>0)%>%
+  ggplot(aes(x=total_ads,y=pv2p,size=stations))+geom_point()+
+  facet_wrap(~party)+labs(title='Popular vote vs. total ads run, 2018')
+
+dat_total %>% filter(ads_comb>quantile(dat_total$ads_comb,.7,na.rm=T)&(pv2p>60|pv2p<40))%>% 
+  ggplot(aes(x=total_ads,y=pv2p,col=factor(party)))+geom_point()
+dat %>% filter(Uncontested==0&Unc_prev==0) %>%ggplot(aes(x=prev,y=party_wins,col=winner_party))+
+  geom_smooth()
+
+```
+
+
+# Model
+
+```{r model}
+
+# previous years 
+dat_test<-dat %>% filter(cycle=='2018'&Uncontested==0)
+dat_train<-dat %>% filter(cycle<'2018'&Uncontested==0)
+g0<-glm(party_wins~prev:factor(Unc_prev)+
+          party:president_party+factor(MidtermYear)+Status+term,
+        family=binomial(link=logit),data=dat_train)
+g1<-glm(party_wins~prev:factor(Unc_prev)+
+          Unemployed_prct+
+          party:president_party+factor(MidtermYear)+Status+term+(per)+
+          ads_run+total_ads,family=binomial(link=logit),data=dat_train)
+
+g2<-glm(party_wins~prev:factor(Unc_prev)+
+          Unemployed_prct+
+          party:president_party+factor(MidtermYear)+Status+term+stations+
+          ads_run+total_ads,family=binomial(link=logit),data=dat_train)
+g2<-glm(party_wins~prev*factor(Unc_prev)+party:president_party:MidtermYear+term+Status+factor(Uncontested),family=binomial(link=logit),data=dat%>% filter(cycle<2018))
+
+g1<-glm(party_wins~party:president_party:MidtermYear+Status+term,family=binomial(link=logit),data=dat%>% filter(cycle<2018))
+g2<-glm(party_wins~party:president_party:MidtermYear+Status+term+ads_run+total_ads+Unemployed_prct,family=binomial(link=logit),data=dat%>% filter(cycle<2018))
+ggplot(data=dat_train,aes(x=predict(g0,dat_train,type='response'),y=pv2p))+geom_smooth()
+
+
+ggplot(data=dat_train,aes(x=predict(g2,dat_train,type='response'),y=party_wins))+geom_smooth()
+# AUC/Sensitivity/Specificity Function
+
+classification_table<-function(model){
+  dat_test$pred<-predict(model,dat_test,type='response')
+  classificationtable<-table(dat_test$party_wins,dat_test$pred > .5)
+  sensitivity<-(classificationtable[2,2]/(classificationtable[2,2]+classificationtable[2,1]))*100
+  specificity<-(classificationtable[1,1]/(classificationtable[1,1]+classificationtable[1,2]))*100
+  auc<-roc(dat_test$party_wins,dat_test$pred)
+  return(list('auc'=auc$auc,'sensitivity'=sensitivity,'specificity'=specificity))
+}
+
+models<-list('log1'=g1,'log2'=g2)
+tab<-sapply(models,classification_table)
+
+
+
+
+```
+
+# Results 
+
+
+# Extra
+```{r}
+# 
+# # Pres polls
+# pres_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/approval_polllist.csv')
+# pres_poll_cl<-pres_poll%>% mutate(election_date=as.Date(election_date,format = "%m/%d/%y"),
+#                                   last_enddate=as.Date(last_enddate,format = "%m/%d/%y"))%>%
+#   mutate(days_until_election=difftime(election_date,last_enddate,units="days"))%>%
+#   filter(days_until_election<120)%>%
+#   filter(cycle>2000&!(state%in% c('National','District of Columbia')))%>%
+#   mutate(state=case_when(
+#     state%in% c('NE-1','NE-2','NE-3')~'Nebraska',
+#     state%in% c('ME-1','ME-2')~'Maine',
+#     TRUE~state
+#   ))%>%
+#   group_by(candidate_id,cycle,state,candidate_name)%>%
+#   summarise(approval=mean(pct_estimate))
+#     
+```
+
+
+# Conclusion
+
+Moving forward, I don't plan to use ads data because there isn't a comprehensive database
+for 2022 candidates. However, I think this exploration provided really interesting insight, 
+beginning to suggest that advertising has a positive significant impact on a candidate's
+odds of getting elected. 
+
+# Citations
+
+Alan S Gerber, James G Gimpel, Donald P Green, and Daron R Shaw. How Large and Long- lasting are the Persuasive Effects of Televised Campaign Ads? Results from a Randomized Field Experiment. American Political Science Review, 105(01):135–150, 2011.

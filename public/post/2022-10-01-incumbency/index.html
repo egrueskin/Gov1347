@@ -66,9 +66,282 @@
 
 <div id="intro" class="section level1">
 <h1>Intro</h1>
+<p>Prior to each election, many publications like the Cook Political Report, Crystal Ball, and CQ politics build a partisan rating, or metric for where the district is politically
+aligned. The scale frequently takes the form of: Solid D/R, Likely D/R, Lean D/R,
+and tossup. In calculating these indices, the Cook Report specifically looks at the
+difference between the district’s presidential vote results to the nationwide average. (“The Cook”)
+Other publications use similar methodologies, adding in variables like the generic ballot and local polling.</p>
+<p>In this blog post, I am interested in exploring Extension #1 to see how well
+the expert predictions fared in 2018 elections. Instead of focusing on any specific
+publication, I will compare the average rating across the following publications:
+Cook Political Report, Rotehnberg, CQ Politics, Sabato’s Crystal Ball, and Real
+Clear Politics.</p>
 </div>
 <div id="data" class="section level1">
 <h1>Data</h1>
+<p>To examine the accuracy of expert predictions, I merged three main datasets:
+the expert predictions on competitive US House races from a variety of sources, the actual results of the elections, and the congressional maps. The average ratings
+were pooled from Cook, Rothenberg, CQ Politics, Sabato’s Crystal ball, and Real Clear Politics.</p>
+</div>
+<div id="extension-1" class="section level1">
+<h1>Extension 1</h1>
+<p>Below, I map the Republican voteshare by district in 2018, where blue values
+correspond to Democrat wins, red values are Republican wins, and purple values are
+closer margins.</p>
+<p><img src="http://example.org/post/2022-10-01-incumbency/index_files/figure-html/Map-1.png" width="672" /></p>
+<p>To test how well these predictions did, I looked at the acutal results below.</p>
+<img src="http://example.org/post/2022-10-01-incumbency/index_files/figure-html/comparisons-1.png" width="672" />
+<table class="gmisc_table" style="border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;">
+<thead>
+<tr>
+<th style="border-bottom: 1px solid grey; border-top: 2px solid grey;">
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Avg_rating_code
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Dem_Win
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Rep_Win
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Dem_pct
+</th>
+<th style="font-weight: 900; border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;">
+Rep_pct
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">
+1
+</td>
+<td style="text-align: center;">
+Solid D
+</td>
+<td style="text-align: center;">
+13
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="text-align: center;">
+1
+</td>
+<td style="text-align: center;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+2
+</td>
+<td style="text-align: center;">
+Likely D
+</td>
+<td style="text-align: center;">
+9
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="text-align: center;">
+1
+</td>
+<td style="text-align: center;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+3
+</td>
+<td style="text-align: center;">
+Lean D
+</td>
+<td style="text-align: center;">
+15
+</td>
+<td style="text-align: center;">
+0
+</td>
+<td style="text-align: center;">
+1
+</td>
+<td style="text-align: center;">
+1
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+4
+</td>
+<td style="text-align: center;">
+Toss up
+</td>
+<td style="text-align: center;">
+21
+</td>
+<td style="text-align: center;">
+7
+</td>
+<td style="text-align: center;">
+0.75
+</td>
+<td style="text-align: center;">
+0.75
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+5
+</td>
+<td style="text-align: center;">
+Lean R
+</td>
+<td style="text-align: center;">
+3
+</td>
+<td style="text-align: center;">
+23
+</td>
+<td style="text-align: center;">
+0.115
+</td>
+<td style="text-align: center;">
+0.115
+</td>
+</tr>
+<tr>
+<td style="text-align: left;">
+6
+</td>
+<td style="text-align: center;">
+Likely R
+</td>
+<td style="text-align: center;">
+2
+</td>
+<td style="text-align: center;">
+24
+</td>
+<td style="text-align: center;">
+0.077
+</td>
+<td style="text-align: center;">
+0.077
+</td>
+</tr>
+<tr>
+<td style="border-bottom: 2px solid grey; text-align: left;">
+7
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+Solid R
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+0
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+18
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+0
+</td>
+<td style="border-bottom: 2px solid grey; text-align: center;">
+0
+</td>
+</tr>
+</tbody>
+</table>
+<p>As evident in the figure and table above, the average expert predictions fared very
+well in 2018, with only 5 out or 70 non-tossup races going to the other candidate.</p>
+<p>Next, I examined this from a modeling perspective, looking at data from 2014 to 2020.
+I chose to start at 2014 because that was the last time these specific congressional
+maps were in use.</p>
+<p><img src="http://example.org/post/2022-10-01-incumbency/index_files/figure-html/modeling-1.png" width="672" /></p>
+<pre><code>## 
+## Results by Year
+## ===================================================================
+##                                   Dependent variable:              
+##                     -----------------------------------------------
+##                                  RepVotesMajorPercent              
+##                            All years                 2018          
+##                               (1)                     (2)          
+## -------------------------------------------------------------------
+## I(avg_rating - 4)           2.74***                 2.56***        
+##                             (0.09)                  (0.10)         
+##                                                                    
+## Constant                   50.99***                48.96***        
+##                             (0.16)                  (0.19)         
+##                                                                    
+## -------------------------------------------------------------------
+## Observations                  381                     135          
+## R2                           0.71                    0.82          
+## Adjusted R2                  0.71                    0.82          
+## Residual Std. Error     3.11 (df = 379)         2.12 (df = 133)    
+## F Statistic         936.63*** (df = 1; 379) 611.78*** (df = 1; 133)
+## ===================================================================
+## Note:                                   *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<pre><code>## 
+## Results by Incumbent Party
+## ===================================================================
+##                                   Dependent variable:              
+##                     -----------------------------------------------
+##                                  RepVotesMajorPercent              
+##                           R Incumbent             D Incumbent      
+##                               (1)                     (2)          
+## -------------------------------------------------------------------
+## I(avg_rating - 4)           2.93***                 2.96***        
+##                             (0.19)                  (0.14)         
+##                                                                    
+## Constant                   50.35***                51.54***        
+##                             (0.34)                  (0.25)         
+##                                                                    
+## -------------------------------------------------------------------
+## Observations                  182                     199          
+## R2                           0.56                    0.71          
+## Adjusted R2                  0.56                    0.71          
+## Residual Std. Error     3.11 (df = 180)         3.07 (df = 197)    
+## F Statistic         230.05*** (df = 1; 180) 474.35*** (df = 1; 197)
+## ===================================================================
+## Note:                                   *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<p>As this regression output table shows, the model had the highest R^2 in 2018,
+<<<<<<< HEAD
+followed by times where the Incumbent was Democrat or the entire dataset, followed by the times the
+=======
+followed by times where the Incumbent was Democrat, followed by the times the
+>>>>>>> a129efeef1dfe94a514add0bb5e6624858b24a74
+incumbent was republican. I chose to center average rating around 0, such that
+I could interpret the results more directionally. In each model, any movement
+above tossup towards Republican is associated with about a 2-3 percentage points higher
+Republican vote margin. Moving forward, I think it would be useful to play around
+with transformations, like polynomials and logs to better account for the non-linear
+trends after centering.</p>
+<p>Next, I look at how well this model would’ve performed on 2022 data had we
+excluded it from my model.</p>
+<p><img src="http://example.org/post/2022-10-01-incumbency/index_files/figure-html/testing-1.png" width="672" />
+As this graph shows, there was only one case where the model predicted a margin
+difference of greater than .5 and the election went the other way. Hence,
+this model provided strong accuracy in 2020, but since this is only one year,
+further cross validation would be necessary to truly test the model.</p>
+</div>
+<div id="forecast-update" class="section level1">
+<h1>Forecast Update</h1>
+<p>For this week’s update, I return to my district: OH-01, using Kiara’s helpful section code.</p>
+<pre><code>##        fit      lwr      upr
+## 1 52.72655 51.30364 54.14946</code></pre>
+<pre><code>##     fit   lwr   upr
+## 1 53.71 53.71 53.71</code></pre>
+<p>Here, I calculated two prediction margins: one modeled based on polling and one based on polling and the Cook rating. In each case, I predict that Chabot will win with a small margin. However, my model including the Cook rating does not seem sound because
+it has so few data points to work through, so it doesn’t have enough fit details to run an interval. Therefore, in the upcoming weeks, I will work on including more data (through Chabot’s whole term dating back to the 1990’s)
+to better model these two variables.</p>
+</div>
+<div id="references" class="section level1">
+<h1>References</h1>
+<p>“The Cook Political Report’s Partisan Voter Index.” Ballotpedia, <a href="https://ballotpedia.org/The_Cook_Political_Report%27s_Partisan_Voter_Index" class="uri">https://ballotpedia.org/The_Cook_Political_Report%27s_Partisan_Voter_Index</a>.</p>
 </div>
 
 
@@ -77,6 +350,7 @@
 
 	<div class="pagination">
 		<a href="/post/2022-09-23-polling/" class="left arrow">&#8592;</a>
+		<a href="/post/2022-10-07-air-war/" class="right arrow">&#8594;</a>
 
 		<a href="#" class="top">Top</a>
 	</div>
@@ -86,7 +360,11 @@
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-10-01 22:27:17.422097 -0400 EDT m=&#43;0.214728751">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+<<<<<<< HEAD
+			&copy; <time datetime="2022-10-10 21:25:37.599463 -0400 EDT m=&#43;0.206686668">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+=======
+			&copy; <time datetime="2022-10-03 13:56:32.257474 -0400 EDT m=&#43;0.184353126">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+>>>>>>> a129efeef1dfe94a514add0bb5e6624858b24a74
 			</span>
 		</footer>
 
