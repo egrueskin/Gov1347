@@ -185,7 +185,7 @@ stargazer(g0,g1,g2,type='text',column.labels=c('Fundamentals','+ Number of Ads',
 ```
 
 As the second and third regression outputs demonstrate, the number of ads has a small positive correlation with ods of getting elected. The more important variables appear to be the fundamentals, including: the voteshare in the district the year prior, whether it’s a midterm year, whether the candidate represents the same party as the president, and the number of terms of the candidate. Unintuitively, there is a negative correlation for the stations aired on, but the coefficient 
-is so small that it does not seem meaningful.
+is so small that it does not seem meaningful. 
 
 
 # Validation
