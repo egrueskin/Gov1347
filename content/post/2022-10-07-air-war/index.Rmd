@@ -2,11 +2,12 @@
 title: "Air War"
 author: "R package build"
 date: "2022-10-07"
-slug: []
+output: pdf_document
 categories: []
 summary: In this post, I look at the effects of campaign ads on predicting US house
   elections through Extension
 tags: []
+slug: []
 ---
 
 # Intro
