@@ -61,6 +61,17 @@ dat_pred$id <- 1:nrow(dat_pred)
 train <- dat_pred %>% dplyr::sample_frac(0.70)
 test  <- dplyr::anti_join(dat_pred, train, by = 'id')
 ```
+# Ads
+
+To begin, I examine whether there is a relationship between expert predictions
+and turnout. I run three models, as shown below, with each model adding a variable.
+
+In my first model, I simply run turnout, calculated as total voters minus the district's 
+eligible citizens of that age group, on the average expert prediction rating. One immediate
+limitation in this data is that there were only 390 observations for which I had expert
+predictions between 2010-2022, so the training dataset becomes 270 observations.
+The next model also includes a variable for the status of the incumbent, and the final 
+model includes a variable for the presidential party.
 
 ```{r avg rating}
 
@@ -75,12 +86,31 @@ accuracy<-function(model){
   return(list('rmse'=rmse,'mae'=mae))
 }
 
+
 stargazer(lm1,lm2,lm3,type='text')
-models<-list('lm1'=lm1,'lm2'=lm2)
+  
+models<-list('lm1'=lm1,'lm2'=lm2,'lm3'=lm3)
 tab<-sapply(models,accuracy)
 tab
 ```
 
+As the model output shows, my first model does not find there to be a significant
+relationship between the turnout and average rating. However, after controlling for incumbency,
+both models 2 and 3 determine that there is a negative relationship between the two variables.
+This means that as Cook predicts that a district will turn more Republican, the turnout
+is predicted to be about .01 points lower. Hence, the relationship is still about neglegible. 
+
+Next, I created a small table with rmse and mae outputs as validation tests on my testing data.
+Each of these measures is pretty similar, suggesting that even though our adjusted R^2 was much better after including incumbency data, the test data didn't show large differences.
+
+To continue looking at turnout data, I examine the relationship between total $'s
+spent on ads (for districts with data) and turnout in districts between 2010 and 2022.
+This leads to 770 total observations.
+As this first graph shows, there appears to be a positive, but noise, correlation
+between ad spending and turnout, giving beginning evidence that ad spending 
+is effective at mobilization. To control for midterm years, I next facet it by whether or not
+the election was during a midterm year. I find that the R^2 is slightly better after
+faceting, but the correlation is likely still hard to tease out without further data.
 #ii. 
 ```{r ads}
 ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/ads_joined_group.csv")
@@ -98,6 +128,12 @@ ggplot(data=dat_ads,aes(x=cost,y=turnout))+geom_point()+geom_smooth(method='lm')
 
 ```
 
+
+Instead of going deeper into models for any of these relationships, I will return
+to my existing model. Since these variables (turnout and ads) are hard to predict
+ahead of time, I am going to stick to fundamental-based data in my model for now. 
+
+This week, I will use last week's framework for the dataset, but instead modeling the outcome as the two party vote share. I will also include presidential approval polling.
 ```{r model}
 inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
 inc_2<-inc %>%
