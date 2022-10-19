@@ -137,6 +137,8 @@ ggplot(data=dat_ads,aes(x=cost,y=turnout))+geom_point()+geom_smooth(method='lm')
 ```
 
 
+#Overall model 
+
 Instead of going deeper into models for any of these relationships, I will return
 to my existing model. Since these variables (turnout and ads) are hard to predict
 ahead of time, I am going to stick to fundamental-based data in my model for now. 
@@ -147,8 +149,10 @@ data to 2022 data but am encountering a few issues, including: names being forma
 in different ways, how to treat races where there are more than one party from a specific race (eg. Alaska House), and districts that have recently been drawn (eg. Colorado District 8). 
 
 Hence, I am going to return to my nationwide model where I am more confident that these
-errors will be diluted. Here, I begin to look at seat share versus fundamental data (presidential party, house incumbency party), economic data (disposable change in income), as well as presidential and generic ballot approval ratings. I subset to only midterm years
+errors will be diluted. Here, I begin to look at seat share versus fundamental data (house majority incumbency party), economic data (disposable change in income), as well as generic ballot approval ratings. I subset to only midterm years
 where each row represents the party by year with information, which only amounts to about 30 observations (goes back to 1960).
+
+
 
 ```{r model nation}
 inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>%
@@ -175,16 +179,15 @@ inc_gen<-inner_join(inc,gen_poll,by=c('year','party'))
 all<-inner_join(inc_gen,rdi,by='year')
 all<-inner_join(all,pres,by='year')
 
-lm1<-lm(seats~party*president_party*H_incumbent_party,data=all)
-lm2<-lm(seats~party*president_party*H_incumbent_party+DSPIC_change_pct+approval+poll_pct,data=all)
+lm1<-lm(seats~party*H_incumbent_party,data=all)
+lm2<-lm(seats~party*H_incumbent_party+DSPIC_change_pct+poll_pct,data=all)
 
 stargazer(lm1,lm2,type='text')
 ```
 
-Through these initial results, it appears as though controlling for the interactions between
-the party, president party, and house incumbent party add more nuance and better predictions
-to my model. However, many of the coefficients are not as I'd expect, so I will delve
-further into examining confounders or lack of data.
+Through these initial results, it appears as though adding data about the generic polling percentage and disposable income create better predictions
+to my model. Moving forward, I would like to add lagged presidential data so I can better use
+presidential approval data.
 
 
 # Conclusion:
