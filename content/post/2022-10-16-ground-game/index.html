@@ -16,6 +16,17 @@ tags: []
 Primarily, I focus on Extension #2 whether expert predictions (blog post 4) and ad spending (blog post 5)
 affect turnout at the district level. I end with an update to my model and a further look
 into my specific district, OH-01.</p>
+</div>
+<div id="ads" class="section level1">
+<h1>Ads</h1>
+<p>To begin, I examine whether there is a relationship between expert predictions
+and turnout. I run three models, as shown below, with each model adding a variable.</p>
+<p>In my first model, I simply run turnout, calculated as total voters minus the district’s
+eligible citizens of that age group, on the average expert prediction rating. One immediate
+limitation in this data is that there were only 390 observations for which I had expert
+predictions between 2010-2022, so the training dataset becomes 270 observations.
+The next model also includes a variable for the status of the incumbent, and the final
+model includes a variable for the presidential party.</p>
 <pre><code>## 
 ## ==================================================================================
 ##                                          Dependent variable:                      
@@ -43,9 +54,82 @@ into my specific district, OH-01.</p>
 ## F Statistic         2.248 (df = 1; 268) 3.602** (df = 2; 267) 2.396* (df = 3; 266)
 ## ==================================================================================
 ## Note:                                                  *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
-<pre><code>##      lm1        lm2       
-## rmse 0.01230225 0.01161154
-## mae  0.08840246 0.08660321</code></pre>
-<p>#ii.
+<pre><code>##      lm1        lm2        lm3       
+## rmse 0.01230225 0.01161154 0.01157815
+## mae  0.08840246 0.08660321 0.08656715</code></pre>
+<p>As the model output shows, my first model does not find there to be a significant
+relationship between the turnout and average rating. However, after controlling for incumbency,
+both models 2 and 3 determine that there is a negative relationship between the two variables.
+This means that as Cook predicts that a district will turn more Republican, the turnout
+is predicted to be about .01 points lower. Hence, the relationship is still about neglegible.</p>
+<p>Next, I created a small table with rmse and mae outputs as validation tests on my testing data.
+Each of these measures is pretty similar, suggesting that even though our adjusted R^2 was much better after including incumbency data, the test data didn’t show large differences.</p>
+<p>To continue looking at turnout data, I examine the relationship between total $’s
+spent on ads (for districts with data) and turnout in districts between 2010 and 2022.
+This leads to 770 total observations.
+As this first graph shows, there appears to be a positive, but noise, correlation
+between ad spending and turnout, giving beginning evidence that ad spending
+is effective at mobilization. To control for midterm years, I next facet it by whether or not
+the election was during a midterm year. I find that the R^2 is slightly better after
+faceting, but the correlation is likely still hard to tease out without further data.
+#ii.
 <img src="{{< blogdown/postref >}}index_files/figure-html/ads-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/ads-2.png" width="672" /></p>
+<p>Instead of going deeper into models for any of these relationships, I will return
+to my existing model. Since these variables (turnout and ads) are hard to predict
+ahead of time, I am going to stick to fundamental-based data in my model for now.</p>
+<p>One of the main challenges has been cleaning and merging the district-level data to get a clean dataset
+of past results and the 2022 races. This week, I have been working to bind historical
+data to 2022 data but am encountering a few issues, including: names being formatted
+in different ways, how to treat races where there are more than one party from a specific race (eg. Alaska House), and districts that have recently been drawn (eg. Colorado District 8).</p>
+<p>Hence, I am going to return to my nationwide model where I am more confident that these
+errors will be diluted. Here, I begin to look at seat share versus fundamental data (presidential party, house incumbency party, economic data (disposable change in income), as well as presidential and generic ballot approval ratings.</p>
+<pre><code>## 
+## ===============================================================================================================
+##                                                                    Dependent variable:                         
+##                                            --------------------------------------------------------------------
+##                                                                           seats                                
+##                                                     (1)                   (2)                     (3)          
+## ---------------------------------------------------------------------------------------------------------------
+## partyR                                          -45.563***             -93.500***             -68.037***       
+##                                                  (11.385)               (10.579)               (13.306)        
+##                                                                                                                
+## president_partyR                                  -0.005                -16.167                 -9.279         
+##                                                  (11.490)               (11.095)               (11.496)        
+##                                                                                                                
+## H_incumbent_partyR                                -0.463               -60.667***             -52.688***       
+##                                                  (12.395)               (14.960)               (14.063)        
+##                                                                                                                
+## DSPIC_change_pct                                                                                 1.404         
+##                                                                                                 (2.722)        
+##                                                                                                                
+## approval                                                                                        -0.195         
+##                                                                                                 (0.364)        
+##                                                                                                                
+## poll_pct                                                                                        2.076**        
+##                                                                                                 (0.746)        
+##                                                                                                                
+## partyR:president_partyR                                                 32.100*                 20.724         
+##                                                                         (15.691)               (14.906)        
+##                                                                                                                
+## partyR:H_incumbent_partyR                                              120.000***             101.155***       
+##                                                                         (21.157)               (20.480)        
+##                                                                                                                
+## president_partyR:H_incumbent_partyR                                      15.333                 13.247         
+##                                                                         (20.071)               (18.717)        
+##                                                                                                                
+## partyR:president_partyR:H_incumbent_partyR                              -29.933                 -23.052        
+##                                                                         (28.385)               (26.050)        
+##                                                                                                                
+## Constant                                        240.147***             264.167***             169.676***       
+##                                                  (10.335)               (7.480)                (39.041)        
+##                                                                                                                
+## ---------------------------------------------------------------------------------------------------------------
+## Observations                                        32                     32                     32           
+## R2                                                 0.364                 0.823                   0.871         
+## Adjusted R2                                        0.296                 0.772                   0.810         
+## Residual Std. Error                          32.203 (df = 28)       18.323 (df = 24)       16.740 (df = 21)    
+## F Statistic                                5.339*** (df = 3; 28) 15.995*** (df = 7; 24) 14.189*** (df = 10; 21)
+## ===============================================================================================================
+## Note:                                                                               *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<p>some cases where both are above 50%</p>
 </div>

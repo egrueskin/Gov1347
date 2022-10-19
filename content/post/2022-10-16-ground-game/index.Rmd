@@ -133,17 +133,57 @@ Instead of going deeper into models for any of these relationships, I will retur
 to my existing model. Since these variables (turnout and ads) are hard to predict
 ahead of time, I am going to stick to fundamental-based data in my model for now. 
 
-This week, I will use last week's framework for the dataset, but instead modeling the outcome as the two party vote share. I will also include presidential approval polling.
+One of the main challenges has been cleaning and merging the district-level data to get a clean dataset
+of past results and the 2022 races. This week, I have been working to bind historical
+data to 2022 data but am encountering a few issues, including: names being formatted
+in different ways, how to treat races where there are more than one party from a specific race (eg. Alaska House), and districts that have recently been drawn (eg. Colorado District 8). 
+
+Hence, I am going to return to my nationwide model where I am more confident that these
+errors will be diluted. Here, I begin to look at seat share versus fundamental data (presidential party, house incumbency party, economic data (disposable change in income), as well as presidential and generic ballot approval ratings.
+
+```{r model nation}
+inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>%
+    mutate(MidtermYear=ifelse(year%%4,0,1)) %>%
+  filter(MidtermYear==1)
+gen_poll<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>%
+    mutate(MidtermYear=ifelse(year%%4,0,1)) %>%
+  filter(MidtermYear==1)%>%
+  filter(days_until_election<52)%>%
+  group_by(year)%>%
+  summarise(D=mean(dem),R=mean(rep))%>%
+  pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct')
+rdi<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/RDI_quarterly.csv")%>%
+    mutate(MidtermYear=ifelse(year%%4,0,1)) %>%
+  filter(MidtermYear==1&quarter_yr==3)%>%
+  select(year,DSPIC_change_pct)
+library(stringr)
+pres<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/pres_approval_gallup_1941-2022.csv")%>%
+mutate(MidtermYear=ifelse(year%%4,0,1)) %>%
+  filter(MidtermYear==1)%>%
+  group_by(year)%>%
+  summarise(approval=mean(approve))
+inc_gen<-inner_join(inc,gen_poll,by=c('year','party'))
+all<-inner_join(inc_gen,rdi,by='year')
+all<-inner_join(all,pres,by='year')
+
+lm1<-lm(seats~party+president_party+H_incumbent_party,data=all)
+lm2<-lm(seats~party*president_party*H_incumbent_party,data=all)
+lm3<-lm(seats~party*president_party*H_incumbent_party+DSPIC_change_pct+approval+poll_pct,data=all)
+
+stargazer(lm1,lm2,lm3,type='text')
+```
+
+
 ```{r model}
 inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
 inc_2<-inc %>%
-  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>%
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party,district_num)%>%
   mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
 
 # Republican rows
-inc_2_rep<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+inc_2_rep<-inc_2 %>% select(st_cd_fips, state,district_num,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
 # Dem rows
-inc_2_dem<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+inc_2_dem<-inc_2 %>% select(st_cd_fips, state,district_num,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
 # Bind together
 inc_2_total<-bind_rows(inc_2_rep,inc_2_dem)
 inc_2_total<-inc_2_total %>%
@@ -152,12 +192,44 @@ inc_2_total<-inc_2_total %>%
     Status=ifelse(party=='R',RepStatus,DemStatus),
     pv2p=ifelse(party=='R',RepVotesMajorPercent,DemVotesMajorPercent))%>%
   filter(pv2p!=0)%>%
-  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+  select(state,st_cd_fips,district_num, year,party,winner_party,president_party,Uncontested,
          party,CandidateName,Status,pv2p)
 
 
 inc_2_total<-inc_2_total %>%
-  mutate(party_wins=ifelse(party==winner_party,1,0))
+  mutate(party_wins=ifelse(party==winner_party,1,0),
+         incumbent=ifelse(Status=='Incumbent',1,0))
+
+cands_22<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/house_cands.csv")%>%
+  mutate(year=2022,president_party='D')%>%mutate(dist_numeric=as.numeric(district),
+         district_num=case_when(
+   dist_numeric<10~paste0('0',district),
+   is.na(dist_numeric)~'00',
+    TRUE~district
+  ))%>%
+  rename(CandidateName=cand,party=cand_party)%>%
+  filter(party %in% c('Democratic','Republican'))%>%
+  mutate(party=substr(party,1,1))%>%
+  select(-c(district,dist_numeric))
+  
+cands_22_ <- cands_22 %>% group_by(state,district_num)%>%
+  mutate(n=n(),Uncontested=ifelse(n>1,1,0))%>%
+  ungroup()
+
+cand<-bind_rows(inc_2_total,cands_22_)
+
+cand_fin<- cand %>%
+  group_by(CandidateName)%>%
+  arrange(year)%>%
+ mutate(term = 1:n(),
+        term=term-1)%>%
+  ungroup()
+
+cand_fin<-cand %>%
+  group_by(state,district_num,party)%>%
+  arrange(year)%>%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested))%>%
+  ungroup()
 
 # Unemployment data
 unemp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_state/unemployment_state_monthly.csv')
@@ -210,11 +282,11 @@ dat%>% filter(pred>50)%>%
 #ggplot(data=dat,aes(x=pv2p,y=predict(lm1,dat_2%>% filter(!is.na(pred[,"lwr"])))))
 ```
 
+some cases where both are above 50%
 
 
 
-
-```{r,include=FALSE}
+```{r extra,include=FALSE}
 # library(readr)
 # library(tidyverse)
 # dist_pv_df <- read_csv("~Section data 4/incumb_dist_1948-2020 (3).csv")
