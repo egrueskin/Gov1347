@@ -13,8 +13,14 @@ tags: []
 
 In this blog post, I look into the "Ground Game," or the non-ad components to political US House campaigns.
 Primarily, I focus on Extension #2 whether expert predictions (blog post 4) and ad spending (blog post 5) 
-affect turnout at the district level. I end with an update to my model and a further look
-into my specific district, OH-01. 
+affect turnout at the district level. I only end up finding a visual correlation between turnout and ad spending. I end with an update to my model where I work on
+district and nation-level outcomes. 
+
+There is mixed academic literature on whether the campaign's ground efforts have
+a tangible impact on the success of the candidate. In Enos and Fowler's article,
+they find that presidential campaigns can increase the turnout by 7-8 percentage points, 
+exploiting media market spillovers. In this blog post, I do not have a comparable
+research design, but rather look through some aggregate data to explore the topics descriptively.
 
 
 ```{r setup, include=FALSE, warning=FALSE}
@@ -111,6 +117,8 @@ between ad spending and turnout, giving beginning evidence that ad spending
 is effective at mobilization. To control for midterm years, I next facet it by whether or not
 the election was during a midterm year. I find that the R^2 is slightly better after
 faceting, but the correlation is likely still hard to tease out without further data.
+
+
 #ii. 
 ```{r ads}
 ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/ads_joined_group.csv")
@@ -139,7 +147,8 @@ data to 2022 data but am encountering a few issues, including: names being forma
 in different ways, how to treat races where there are more than one party from a specific race (eg. Alaska House), and districts that have recently been drawn (eg. Colorado District 8). 
 
 Hence, I am going to return to my nationwide model where I am more confident that these
-errors will be diluted. Here, I begin to look at seat share versus fundamental data (presidential party, house incumbency party, economic data (disposable change in income), as well as presidential and generic ballot approval ratings.
+errors will be diluted. Here, I begin to look at seat share versus fundamental data (presidential party, house incumbency party), economic data (disposable change in income), as well as presidential and generic ballot approval ratings. I subset to only midterm years
+where each row represents the party by year with information, which only amounts to about 30 observations (goes back to 1960).
 
 ```{r model nation}
 inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>%
@@ -166,13 +175,28 @@ inc_gen<-inner_join(inc,gen_poll,by=c('year','party'))
 all<-inner_join(inc_gen,rdi,by='year')
 all<-inner_join(all,pres,by='year')
 
-lm1<-lm(seats~party+president_party+H_incumbent_party,data=all)
-lm2<-lm(seats~party*president_party*H_incumbent_party,data=all)
-lm3<-lm(seats~party*president_party*H_incumbent_party+DSPIC_change_pct+approval+poll_pct,data=all)
+lm1<-lm(seats~party*president_party*H_incumbent_party,data=all)
+lm2<-lm(seats~party*president_party*H_incumbent_party+DSPIC_change_pct+approval+poll_pct,data=all)
 
-stargazer(lm1,lm2,lm3,type='text')
+stargazer(lm1,lm2,type='text')
 ```
 
+Through these initial results, it appears as though controlling for the interactions between
+the party, president party, and house incumbent party add more nuance and better predictions
+to my model. However, many of the coefficients are not as I'd expect, so I will delve
+further into examining confounders or lack of data.
+
+
+# Conclusion:
+
+This week was very focused on coding, cleaning, and preparing datasets for further models.
+Hence, my output is not as long or detailed as in most weeks. However, the blog extension gave
+interesting insights into the potential relationships that exist between the perceived closeness of a race(expert prediction), campaign ad spending, and turnout figures. 
+
+Moving forward, I will be focused on improving my nationwide model, particularly in 
+considering whether to include all years (not just midterms), and how to best incorporate
+different forms of data. Additionally, I will work on cleaning my district-wide dataset
+so it is more fit for models.
 
 ```{r model}
 inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
@@ -282,8 +306,9 @@ dat%>% filter(pred>50)%>%
 #ggplot(data=dat,aes(x=pv2p,y=predict(lm1,dat_2%>% filter(!is.na(pred[,"lwr"])))))
 ```
 
-some cases where both are above 50%
+# Citations
 
+Ryan D. Enos and Anthony Fowler. Aggregate Effects of Large-Scale Campaigns on Voter Turnout. Political Science Research and Methods, 6(4):733–751, 2016.
 
 
 ```{r extra,include=FALSE}
