@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+		
+		
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Ground Game &middot; My New Hugo Site</title>
+
+		
+		<link rel="stylesheet" href="/css/style.css">
+		<link rel="stylesheet" href="/css/fonts.css">
+		
+		<link rel="icon" href="/favicon.ico"/>
+		<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+		
+		<link href="" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+
+		<script src="/js/darkmode.js"></script>
+	</head>
+
+    <body>
+        		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					
+						<h2 class="nav-title">My New Hugo Site</h2>
+					
+				</a>
+				<ul>
+    
+    
+</ul>
+			</div>
+		</nav>
+
+        <div id="darkModeToggle" onclick="toggleDarkMode()">
+  &#9680; 
+</div>
+
+        
+
+<main>
+	
+
+
+        <div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        R package build
+        <br>
+        <span>on&nbsp;</span><time datetime="2022-10-16 00:00:00 &#43;0000 UTC">October 16, 2022</time>
+</div>
+
+		<h1 class="post-title">Ground Game</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>In this blog post, I look into the “Ground Game,” or the non-ad components to political US House campaigns.
+Primarily, I focus on Extension #2 whether expert predictions (blog post 4) and ad spending (blog post 5)
+affect turnout at the district level. I end with an update to my model and a further look
+into my specific district, OH-01.</p>
+<pre><code>## 
+## ==================================================================================
+##                                          Dependent variable:                      
+##                     --------------------------------------------------------------
+##                                                turnout                            
+##                             (1)                  (2)                  (3)         
+## ----------------------------------------------------------------------------------
+## avg_rating                -0.006              -0.013**              -0.013**      
+##                           (0.004)              (0.005)              (0.005)       
+##                                                                                   
+## RepStatusIncumbent                             0.041**              0.042**       
+##                                                (0.019)              (0.019)       
+##                                                                                   
+## president_partyR                                                     -0.002       
+##                                                                     (0.016)       
+##                                                                                   
+## Constant                 0.585***             0.594***              0.594***      
+##                           (0.019)              (0.020)              (0.020)       
+##                                                                                   
+## ----------------------------------------------------------------------------------
+## Observations                270                  270                  270         
+## R2                         0.008                0.026                0.026        
+## Adjusted R2                0.005                0.019                0.015        
+## Residual Std. Error  0.123 (df = 268)     0.122 (df = 267)      0.122 (df = 266)  
+## F Statistic         2.248 (df = 1; 268) 3.602** (df = 2; 267) 2.396* (df = 3; 266)
+## ==================================================================================
+## Note:                                                  *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<pre><code>##      lm1        lm2       
+## rmse 0.01230225 0.01161154
+## mae  0.08840246 0.08660321</code></pre>
+<p>#ii.
+<img src="http://example.org/post/2022-10-16-ground-game/index_files/figure-html/ads-1.png" width="672" /><img src="http://example.org/post/2022-10-16-ground-game/index_files/figure-html/ads-2.png" width="672" /></p>
+</div>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/post/2022-10-07-air-war/" class="left arrow">&#8592;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+        		<footer>
+			
+			<span>
+			&copy; <time datetime="2022-10-18 22:49:21.279285 -0400 EDT m=&#43;0.205924251">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			</span>
+		</footer>
+
+    </body>
+</html>

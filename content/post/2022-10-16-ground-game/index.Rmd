@@ -1,0 +1,309 @@
+---
+title: Ground Game
+author: R package build
+date: '2022-10-16'
+slug: []
+categories: []
+summary: Examining Ground Game
+tags: []
+---
+
+
+# Intro
+
+In this blog post, I look into the "Ground Game," or the non-ad components to political US House campaigns.
+Primarily, I focus on Extension #2 whether expert predictions (blog post 4) and ad spending (blog post 5) 
+affect turnout at the district level. I end with an update to my model and a further look
+into my specific district, OH-01. 
+
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE)
+library(tidyverse)
+library(readr)
+library(Metrics)
+library(stargazer)
+
+setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data")
+exp<-read_csv("by_district/expert_rating.csv")%>% filter(year<2022)
+inc<-read_csv("by_district/incumb_dist_1948-2020.csv")
+cvap_district <- read_csv("by_district/cvap_district_2012-2020_clean.csv")
+### District-wide data
+cvap_district <- read_csv("by_district/cvap_district_2012-2020_clean.csv")%>%
+  rename(st_cd_fips = geoid) 
+inc_df<-read_csv("by_district/incumb_dist_1948-2020.csv")%>%
+  filter(year == 2012 | year == 2014 | year == 2016 | year == 2018 | year == 2020)
+expert<-read_csv("./by_district/expert_rating.csv")%>%
+  filter(!is.na(district))%>%
+  mutate(district_num=as.numeric(district),
+         dist_num=case_when(
+   district_num<10~paste0('0',district),
+    TRUE~district
+  ))
+dist_pv_cvap <- inc_df %>%
+  inner_join(cvap_district, by = c('st_cd_fips', 'year','state'))%>%
+  mutate(district_num=as.numeric(district_num))
+dat<-left_join(dist_pv_cvap,expert,by=c('year','state','district_num'))
+dat <- dat %>%
+  mutate(totalvotes = RepVotes + DemVotes,
+         turnout = totalvotes/cvap,
+         DemVotesMajorPct = DemVotesMajorPercent/100,
+         RepVotesMajorPct = RepVotesMajorPercent/100)
+dat_pred<-dat %>% filter(!is.na(avg_rating))
+
+#make this example reproducible
+set.seed(1)
+
+#create ID column
+dat_pred$id <- 1:nrow(dat_pred)
+
+#use 70% of dataset as training set and 30% as test set 
+train <- dat_pred %>% dplyr::sample_frac(0.70)
+test  <- dplyr::anti_join(dat_pred, train, by = 'id')
+```
+
+```{r avg rating}
+
+lm1<-lm(turnout~avg_rating,data=train)
+lm2<-lm(turnout~avg_rating+RepStatus,data=train)
+lm3<-lm(turnout~avg_rating+RepStatus+president_party,data=train)
+
+accuracy<-function(model){
+  test$pred<-predict(model,test,allow.new.levels=TRUE)
+  rmse<-sqrt(mean(test$pred-test$turnout)^2)
+  mae<-mae(test$pred,test$turnout)
+  return(list('rmse'=rmse,'mae'=mae))
+}
+
+stargazer(lm1,lm2,lm3,type='text')
+models<-list('lm1'=lm1,'lm2'=lm2)
+tab<-sapply(models,accuracy)
+tab
+```
+
+#ii. 
+```{r ads}
+ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/ads_joined_group.csv")
+dat_ads<-inner_join(dist_pv_cvap,ads,by=c('year'='cycle','st_cd_fips'))
+dat_ads <- dat_ads %>%
+  mutate(totalvotes = RepVotes + DemVotes,
+         turnout = totalvotes/cvap,
+         DemVotesMajorPct = DemVotesMajorPercent/100,
+         RepVotesMajorPct = RepVotesMajorPercent/100,
+          MidtermYear=ifelse(year%%4,1,0) )
+ggplot(data=dat_ads,aes(x=cost,y=turnout))+geom_point()
+
+library(ggpmisc)
+ggplot(data=dat_ads,aes(x=cost,y=turnout))+geom_point()+geom_smooth(method='lm')+stat_poly_eq()+facet_wrap(~MidtermYear,labeller=label_both)
+
+```
+
+```{r model}
+inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
+inc_2<-inc %>%
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>%
+  mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
+
+# Republican rows
+inc_2_rep<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+# Dem rows
+inc_2_dem<-inc_2 %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+# Bind together
+inc_2_total<-bind_rows(inc_2_rep,inc_2_dem)
+inc_2_total<-inc_2_total %>%
+  mutate(party=ifelse(is.na(RepVotesMajorPercent),'D','R'),
+    CandidateName=ifelse(party=='R',RepCandidate,DemCandidate),
+    Status=ifelse(party=='R',RepStatus,DemStatus),
+    pv2p=ifelse(party=='R',RepVotesMajorPercent,DemVotesMajorPercent))%>%
+  filter(pv2p!=0)%>%
+  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+         party,CandidateName,Status,pv2p)
+
+
+inc_2_total<-inc_2_total %>%
+  mutate(party_wins=ifelse(party==winner_party,1,0))
+
+# Unemployment data
+unemp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_state/unemployment_state_monthly.csv')
+
+unemp_2 <- unemp %>% 
+  filter(!('FIPS Code'%in% c(11,51000)|'State and area'=='Los Angeles County'))%>% 
+  mutate(ElectionYear=ifelse(Year%%2,0,1))%>%
+  filter(ElectionYear==1)%>%
+  filter(Month==10)%>%
+  rename('state'='State and area')
+
+#Join datasets together
+dat_total_minus_gen<-left_join(inc_2_total,unemp_2,by=c('year'='Year','state'))
+
+# Generic polls
+gen_poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv')
+gen_poll_cl<-gen_poll %>% 
+  filter(days_until_election<120)%>%
+  group_by(year,party)%>%
+  summarise(party_support=mean(support))
+
+#Join datasets together
+dat<-left_join(dat_total_minus_gen,gen_poll_cl,by=c('year','party'))%>%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) %>% 
+mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+dat_2<- dat %>%
+  group_by(CandidateName)%>%
+  arrange(year)%>%
+ mutate(term = 1:n())%>%
+  ungroup()
+
+
+dat<-dat_2 %>%
+  group_by(st_cd_fips,party)%>%
+  arrange(year)%>%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
+         approval_cent=party_support-44.6)%>%
+  ungroup()
+  
+dat<- dat %>% mutate(same_party=ifelse(party==president_party,1,0))
+
+lm1<-lm(pv2p~prev+Unc_prev+party_support+term+MidtermYear*same_party,data=dat %>% filter(Uncontested==0))
+dat$pred<-predict(lm1,dat)
+dat%>% filter(pred>50)%>%
+  group_by(st_cd_fips,year)%>%
+  summarise(n=n())%>% 
+  filter(n==2)%>% view()
+
+#ggplot(data=dat,aes(x=pv2p,y=predict(lm1,dat_2%>% filter(!is.na(pred[,"lwr"])))))
+```
+
+
+
+
+
+```{r,include=FALSE}
+# library(readr)
+# library(tidyverse)
+# dist_pv_df <- read_csv("~Section data 4/incumb_dist_1948-2020 (3).csv")
+# # read in cvap
+# cvap_district <- read_csv("~/Dropbox/ElectionAnalytics_Midterms/Lab sessions/campaigns II_ ground game/cvap_district_2012-2020_clean.csv")
+# # mutate geoid for merging
+# cvap_district <- cvap_district %>%
+#   rename(st_cd_fips = geoid)
+# 
+# # select relevant years from voting data
+# table(dist_pv_df$year)
+# # 2012 - from 2018
+# # 2014, 2016, 2018, 2020 - from 2020
+# dist_pv_df <- dist_pv_df %>%
+#   filter(year == 2012 | year == 2014 | year == 2016 | year == 2018 | year == 2020)
+# 
+# table(dist_pv_df$st_cd_fips)
+# 
+# # merge
+# dist_pv_cvap <- dist_pv_df %>%
+#   inner_join(cvap_district, by = c('st_cd_fips', 'year'))
+# 
+# # mutate turnout
+# dist_pv_cvap <- dist_pv_cvap %>%
+#   mutate(totalvotes = RepVotes + DemVotes,
+#          turnout = totalvotes/cvap)
+# # save
+# 
+# # mutate votes percent for glm
+# dist_pv_cvap <- dist_pv_cvap %>%
+#   mutate(DemVotesMajorPct = DemVotesMajorPercent/100,
+#          RepVotesMajorPct = RepVotesMajorPercent/100)
+# 
+# # drop uncontested seats
+# dist_pv_cvap_closed <- dist_pv_cvap %>%
+#   filter(!is.na(DemCandidate), !is.na(RepCandidate)) %>%
+#   mutate(DemVotesMajorPct = DemVotesMajorPercent/100,
+#          RepVotesMajorPct = RepVotesMajorPercent/100)
+# 
+# # basic lm
+# fit1 <- lm(DemVotesMajorPercent ~ turnout,
+#               data = dist_pv_cvap_closed)
+# summary(fit1)
+# 
+# fit1_glm <- glm(DemVotesMajorPct ~ turnout,
+#               data = dist_pv_cvap_closed, family = binomial(link="logit"))
+# summary(fit1_glm)
+# ```
+# 
+# 
+# ```{r,include=FALSE}
+# lm1<-lm(turnout~cost,data=dat_ads)
+# 
+# 
+# dat_22<-read_csv("./by_district/house_cands.csv")
+# dat_22<-dat_22 %>% filter(cand_party%in%c('Democrat','Republican'))
+# 
+# ggplot(dat_pred,aes(x=cook,y=DemVotesMajorPct))+geom_point()+geom_smooth(method='lm')
+# lm1<-lm(turnout~I((avg_rating-4)^2),data=dat_pred)
+# 
+# setwd("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data")
+# exp<-read_csv("by_district/expert_rating.csv")%>% filter(year<2022)
+# inc<-read_csv("by_district/incumb_dist_1948-2020.csv")
+# cvap_district <- read_csv("by_district/cvap_district_2012-2020_clean.csv")
+# cvap_district <- cvap_district %>%
+#   rename(st_cd_fips = geoid) 
+# dat_exp<-merge(exp,cvap_district,by=)
+# 
+# polls_df<-read_csv("Section data 4/house_polls_long.csv")
+# polls_df <- polls_df %>%
+#   filter(year == '2018' | year == '2020')
+# table(polls_df$year)
+# # join
+# cvap_district <- cvap_district %>%
+#   # filter to relevant years 
+#   filter(year == '2018' | year == '2020')
+# 
+# polls_cvap_df <- merge(polls_df, cvap_district, by = c('st_cd_fips', 'year'))
+# 
+# dist_pv_df <- read_csv("Section data 4/incumb_dist_1948-2020 (3).csv")
+# # select relevant years from voting data
+# dist_pv_df <- dist_pv_df %>%
+#   filter(year == 2012 | year == 2014 | year == 2016 | year == 2018 | year == 2020)
+# 
+# # merge
+# dist_pv_cvap <- dist_pv_df %>%
+#   inner_join(cvap_district, by = c('st_cd_fips', 'year'))
+# polls_cvap_vp_df <- merge(polls_cvap_df, dist_pv_df, by = c('st_cd_fips', 'year'))
+# 
+# # mutate turnout
+# polls_cvap_vp_df <- polls_cvap_vp_df %>%
+#   mutate(totalvotes = RepVotes + DemVotes,
+#          turnout = totalvotes/cvap,
+#          DemVotesMajorPct = DemVotesMajorPercent/100,
+#          RepVotesMajorPct = RepVotesMajorPercent/100)
+# 
+# # drop uncontested seats
+# dist_pv_cvap_closed <- polls_cvap_vp_df %>%
+#   filter(!is.na(DemCandidate), !is.na(RepCandidate)) %>%
+#   mutate(DemVotesMajorPct = DemVotesMajorPercent/100,
+#          RepVotesMajorPct = RepVotesMajorPercent/100)
+# 
+# # basic lm
+# fit1 <- lm(DemVotesMajorPercent ~ turnout,
+#               data = dist_pv_cvap_closed)
+# summary(fit1)
+# 
+# ggplot(dist_pv_cvap_closed, aes(x = turnout, y = DemVotesMajorPercent)) + 
+#   geom_point() +
+#   stat_smooth(method = "lm")+
+#   facet_wrap(~president_party*DemStatus,labeller=label_both)
+# 
+# inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/inc.csv")
+# 
+# 
+# # join
+# df <- left_join(inc, cvap_district, by = c('st_cd_fips', 'Year'='year','state'))
+# 
+# # merge with district-level voteshares
+# 
+# dat <- dat %>%
+#   group_by(st_cd_fips,year)
+#   mutate(totalvotes = RepVotes + DemVotes,
+#          turnout = totalvotes/cvap)
+# 
+# ggplot(data=df,aes(x=cvap,y=pv2p,col=party))+geom_smooth()
+# +facet_wrap(~Status,labeller=label_both)
+```

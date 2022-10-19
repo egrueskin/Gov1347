@@ -1,0 +1,51 @@
+---
+title: Ground Game
+author: R package build
+date: '2022-10-16'
+slug: []
+categories: []
+summary: Examining Ground Game
+tags: []
+---
+
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>In this blog post, I look into the “Ground Game,” or the non-ad components to political US House campaigns.
+Primarily, I focus on Extension #2 whether expert predictions (blog post 4) and ad spending (blog post 5)
+affect turnout at the district level. I end with an update to my model and a further look
+into my specific district, OH-01.</p>
+<pre><code>## 
+## ==================================================================================
+##                                          Dependent variable:                      
+##                     --------------------------------------------------------------
+##                                                turnout                            
+##                             (1)                  (2)                  (3)         
+## ----------------------------------------------------------------------------------
+## avg_rating                -0.006              -0.013**              -0.013**      
+##                           (0.004)              (0.005)              (0.005)       
+##                                                                                   
+## RepStatusIncumbent                             0.041**              0.042**       
+##                                                (0.019)              (0.019)       
+##                                                                                   
+## president_partyR                                                     -0.002       
+##                                                                     (0.016)       
+##                                                                                   
+## Constant                 0.585***             0.594***              0.594***      
+##                           (0.019)              (0.020)              (0.020)       
+##                                                                                   
+## ----------------------------------------------------------------------------------
+## Observations                270                  270                  270         
+## R2                         0.008                0.026                0.026        
+## Adjusted R2                0.005                0.019                0.015        
+## Residual Std. Error  0.123 (df = 268)     0.122 (df = 267)      0.122 (df = 266)  
+## F Statistic         2.248 (df = 1; 268) 3.602** (df = 2; 267) 2.396* (df = 3; 266)
+## ==================================================================================
+## Note:                                                  *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<pre><code>##      lm1        lm2       
+## rmse 0.01230225 0.01161154
+## mae  0.08840246 0.08660321</code></pre>
+<p>#ii.
+<img src="{{< blogdown/postref >}}index_files/figure-html/ads-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/ads-2.png" width="672" /></p>
+</div>

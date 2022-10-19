@@ -1,4 +1,3 @@
-```{r, include=FALSE}
 
 unemp<-read.csv("data/unemployment_national_quarterly_final.csv")
 house_vote<-read.csv("data/house_popvote_seats.csv")

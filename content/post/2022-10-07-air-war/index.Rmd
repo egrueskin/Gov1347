@@ -53,7 +53,7 @@ library(caret)
 library(pROC)
 
 # Read in ad data and merge
-# ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_2006_2018 (1).csv")
+# ads<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/ads_2006_2018 (1).csv")
 # ads_issues<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/air_war/ads_issues_2012-2018 (1).csv")
 # ads_joined<-left_join(ads,ads_issues,by=c('creative','market','dma','airdate','airtime',
 #       "state","race","district","party","ad_tone","ad_purpose",  
