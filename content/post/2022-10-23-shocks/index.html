@@ -50,239 +50,210 @@ because i am confident in the level of polling and information about this area.<
 </div>
 <div id="nationwide-model-update" class="section level1">
 <h1>Nationwide Model Update</h1>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/plots-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/plots-2.png" width="672" /></p>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/model%20build-1.png" width="672" /><img src="{{< blogdown/postref >}}index_files/figure-html/model%20build-2.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/plots-1.png" width="672" />
+In this plot, we see that for candidates of the same party as the President during midterm years, their vote share is postiively correlated with the president’s approval. On the other hand, candidates
+of opposite parties as the President are negatively correlated with approval. This intuitively makes sense,
+so I included it in my national model below.</p>
+<p>Here, I have built linear models for the popular vote and seat share for each party
+using fundamental data (incumbency, president party), polling (generic, president),
+and economic data (gdp growth).</p>
+<pre><code>## 
+## ==========================================================
+##                                   Dependent variable:     
+##                               ----------------------------
+##                                   seats      majorvote_pct
+##                                    (1)            (2)     
+## ----------------------------------------------------------
+## Inc_party_pres                  -70.428***     -6.802***  
+##                                  (15.673)       (1.938)   
+##                                                           
+## MidtermYear                     18.306***      2.962***   
+##                                  (5.409)        (0.805)   
+##                                                           
+## approval                        -0.723***      -0.090***  
+##                                  (0.190)        (0.025)   
+##                                                           
+## GDP_growth_pct                   -1.021*        -0.089    
+##                                  (0.546)        (0.071)   
+##                                                           
+## poll_pct                         2.272***      0.294***   
+##                                  (0.475)        (0.062)   
+##                                                           
+## lag_seats                        0.650***                 
+##                                  (0.080)                  
+##                                                           
+## lag_pv                                         0.437***   
+##                                                 (0.115)   
+##                                                           
+## Inc_party_pres:MidtermYear      -33.870***     -5.632***  
+##                                  (8.233)        (1.286)   
+##                                                           
+## Inc_party_pres:approval          1.336***      0.151***   
+##                                  (0.298)        (0.037)   
+##                                                           
+## Inc_party_pres:GDP_growth_pct    1.721**         0.140    
+##                                  (0.766)        (0.101)   
+##                                                           
+## Constant                          12.186       19.060***  
+##                                  (18.105)       (4.345)   
+##                                                           
+## ----------------------------------------------------------
+## Observations                        51            51      
+## R2                                0.920          0.869    
+## Adjusted R2                       0.902          0.840    
+## Residual Std. Error (df = 41)     11.895         1.559    
+## F Statistic (df = 9; 41)        52.268***      30.152***  
+## ==========================================================
+## Note:                          *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<p>As the model output shows, almost all variables are significant at the 5% level.
+I chose to use multiple interactions to account for the cases where the candidate
+represents the same, or different, party as the sitting president.</p>
+<p>My data is structured in a long format, such that the unit of measurement is by candidate.
+Hence, for every race, there are 1-2 observations dependening on whether or not the race
+is uncontested.</p>
+</div>
+<div id="model-validation" class="section level1">
+<h1>Model Validation</h1>
+<pre class="r"><code>test$pred_seats&lt;-predict(lm_seats,test,interval=&#39;prediction&#39;)
+test$pred_vote&lt;-predict(lm_vote,test,interval=&#39;prediction&#39;)
+ggplot(test,aes(x=seats,pred_seats[,&quot;fit&quot;],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+scale_color_manual(values=c(&quot;Blue&quot;,&quot;Red&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/model%20validation-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(test,aes(x=majorvote_pct,pred_vote[,&quot;fit&quot;],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+scale_color_manual(values=c(&quot;Blue&quot;,&quot;Red&quot;))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/model%20validation-2.png" width="672" /></p>
+<pre class="r"><code>tab&lt;-test[test$year==2022,c(3,2,22:23)]
+tab</code></pre>
 <pre><code>## # A tibble: 2 × 4
 ##   party  year pred_seats[,&quot;fit&quot;] [,&quot;lwr&quot;] [,&quot;upr&quot;] pred_vote[,&quot;fit&quot;] [,&quot;lwr&quot;]
 ##   &lt;chr&gt; &lt;dbl&gt;              &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;             &lt;dbl&gt;    &lt;dbl&gt;
-## 1 D      2022               206.     176.     236.              47.5     44.1
-## 2 R      2022               239.     208.     269.              52.9     49.4
+## 1 D      2022               198.     172.     224.              47.8     44.5
+## 2 R      2022               240.     215.     266.              52.8     49.5
 ## # … with 1 more variable: pred_vote[3] &lt;dbl&gt;</code></pre>
+<p>As the graphs above show, the model fits fairly well across the testing dataset. And,
+the prediction for 2022 is that the Democrats will get 207 seats with the Republicans
+receiving 232 seats. This sum (439) is greater than the total sum of seats (436),
+so I will work on considering how to best account for this constraint. Similarly,
+my model predicts that Republicans will get about 53% of the vote while Democrats
+will receive about 47.7% of the vote. The confidence intervals are fairly large and
+just barely overlap, suggesting that both predict with strong confidence that the Republicans
+will gain a majority over the Democrats this November.</p>
+<p>Moving forward, I will work on building simulations to better quantify the uncertainty
+provided by my simulations.</p>
 </div>
 <div id="ohio-section" class="section level1">
 <h1>Ohio section</h1>
-<pre class="r"><code># predict 2022
-oh_22 &lt;- polls_df %&gt;%
-  filter(st_cd_fips == &#39;3901&#39;, year == 2022, party == &#39;REP&#39;)
+<p>Here, I provide an update to my Ohio district analysis. Similarly, it is
+structure din the long format with the unit of analysis at the candidate*year. One
+important data choice was that I removed uncontested races, but included a term for
+whether the prior election was uncontested.</p>
+<pre class="r"><code>inc&lt;-read_csv(&quot;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv&quot;)
+inc&lt;-inc %&gt;% filter(st_cd_fips==3901)%&gt;%
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%&gt;%
+  mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
 
-pred_poll_inc &lt;- predict(mod_poll_inc, oh_22, 
-                          interval = &quot;prediction&quot;, level=0.95)
-pred_poll_inc</code></pre>
-<pre><code>##        fit      lwr      upr
-## 1 52.70593 51.11642 54.29544</code></pre>
-<!-- ```{r} -->
-<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/inc.csv") -->
-<!-- inc_2_total<-inc %>% -->
-<!-- mutate(party_wins=ifelse(party==winner_party,1,0), -->
-<!--        incumbent=ifelse(Status=='Incumbent',1,0), -->
-<!--        district_num=substr(st_cd_fips,3,4))%>% -->
-<!--   rename('year'='Year') -->
-<!-- cands_22<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/house_cands.csv")%>% -->
-<!--   mutate(year=2022,president_party='D')%>%mutate(dist_numeric=as.numeric(district), -->
-<!--                                                  district_num=case_when( -->
-<!--                                                    dist_numeric<10~paste0('0',district), -->
-<!--                                                    is.na(dist_numeric)~'00', -->
-<!--                                                    TRUE~district -->
-<!--                                                  ))%>% -->
-<!--   rename(CandidateName=cand,party=cand_party)%>% -->
-<!--   filter(party %in% c('Democratic','Republican'))%>% -->
-<!--   mutate(party=substr(party,1,1))%>% -->
-<!--   dplyr::select(-c(district,dist_numeric))%>% -->
-<!--   dplyr::distinct(CandidateName, .keep_all = TRUE) -->
-<!-- exp<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/expert_rating.csv")%>% -->
-<!--   mutate(dist_numeric=as.numeric(district), -->
-<!--          district_num=case_when( -->
-<!--            dist_numeric<10~paste0('0',district), -->
-<!--            is.na(dist_numeric)~'00', -->
-<!--            TRUE~district))%>% -->
-<!--   dplyr::select(c(year,state,district_num,cook))%>% filter(year!=2022) -->
-<!-- cands_22_ <- cands_22 %>% group_by(state,district_num)%>% -->
-<!--   mutate(n=n(),Uncontested=ifelse(n>1,0,1))%>% -->
-<!--   ungroup() -->
-<!-- cand<-bind_rows(inc_2_total,cands_22_) -->
-<!-- cand_fin<-cand %>% -->
-<!--   group_by(state,district_num,party)%>% -->
-<!--   arrange(year)%>% -->
-<!--   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested))%>% -->
-<!--   ungroup() -->
-<!-- dat<-left_join(cand_fin,exp,by=c('state','district_num','year'))%>% -->
-<!--   filter(!(is.na(cpvi)&is.na(cook))) -->
-<!-- library(MASS) -->
-<!-- library(ciTools) -->
-<!-- lm1<-glm(party_wins~prev+same_party*MidtermYear+party_support+party,data=cand_fin,family='binomial') -->
-<!-- cand_22<-cand_fin %>% filter(year==2022)%>% -->
-<!--   mutate(same_party=ifelse(party=='D',1,0), -->
-<!--          MidtermYear=1, -->
-<!--          party_support=ifelse(party=='D',44.7,45.4)) -->
-<!-- cand_22$pred<-predict(lm1,cand_22,type='response',interval='prediction') -->
-<!-- cand_fin$pred<-predict(lm1,cand_fin) -->
-<!-- cand_22 %>% dplyr::select(c('state','district_num','prev','pred')) %>% view() -->
-<!-- lm1<-lm(pv2p~prev+same_party*MidtermYear+party_support+party+Unc_prev,data=cand_fin%>% filter(Uncontested==0)) -->
-<!-- c -->
-<!-- ``` -->
-<!-- ```{r model} -->
-<!-- library(tidyverse) -->
-<!-- library(lubridate) -->
-<!-- library(stargazer) -->
-<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/inc.csv") -->
-<!-- inc_2_total<-inc %>%` -->
-<!--   mutate(party_wins=ifelse(party==winner_party,1,0), -->
-<!--          incumbent=ifelse(Status=='Incumbent',1,0)) -->
-<!-- cands_22<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/house_cands.csv")%>% -->
-<!--   mutate(year=2022,president_party='D')%>%mutate(dist_numeric=as.numeric(district), -->
-<!--          district_num=case_when( -->
-<!--    dist_numeric<10~paste0('0',district), -->
-<!--    is.na(dist_numeric)~'00', -->
-<!--     TRUE~district -->
-<!--   ))%>% -->
-<!--   rename(CandidateName=cand,party=cand_party)%>% -->
-<!--   filter(party %in% c('Democratic','Republican'))%>% -->
-<!--   mutate(party=substr(party,1,1))%>% -->
-<!--   select(-c(district,dist_numeric)) -->
-<!-- cands_22_ <- cands_22 %>% group_by(state,district_num)%>% -->
-<!--   mutate(n=n(),Uncontested=ifelse(n>1,1,0))%>% -->
-<!--   ungroup() -->
-<!-- cand<-bind_rows(inc_2_total,cands_22_) -->
-<!-- cand_fin<-cand %>% -->
-<!--   group_by(state,district_num,party)%>% -->
-<!--   arrange(year)%>% -->
-<!--   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested))%>% -->
-<!--   ungroup() -->
-<!-- dat_test<-inc %>% filter(cycle=='2018'&Uncontested==0) -->
-<!-- dat_train<-inc %>% filter(cycle<'2018'&Uncontested==0) -->
-<!-- g0<-glm(party_wins~prev+Unemployed_prct+approval_cent+ -->
-<!--           party+same_party*(MidtermYear), -->
-<!--         family=binomial(link=logit),data=inc) -->
-<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>% -->
-<!--     mutate(MidtermYear=ifelse(year%%4,1,0))  -->
-<!-- gen_poll<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>% -->
-<!--   filter(days_until_election<52)%>% -->
-<!--   group_by(year)%>% -->
-<!--   summarise(D=mean(dem),R=mean(rep))%>% -->
-<!--   pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct') -->
-<!-- rdi<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/RDI_quarterly.csv")%>% -->
-<!--   filter(quarter_yr==3)%>% -->
-<!--   select(year,DSPIC_change_pct,DSPIC_change_qt) -->
-<!-- library(stringr) -->
-<!-- pres<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/pres_approval_gallup_1941-2022.csv")%>% -->
-<!--   group_by(year)%>% -->
-<!--   summarise(approval=mean(approve)) -->
-<!-- inc_gen<-inner_join(inc,gen_poll,by=c('year','party')) -->
-<!-- all<-inner_join(inc_gen,rdi,by='year') -->
-<!-- all<-inner_join(all,pres,by='year') -->
-<!-- all_2<-all %>%  -->
-<!--   arrange(party,year)%>% -->
-<!--   dplyr::mutate(Pres_inc_party=case_when(year==1960~'NA',TRUE~dplyr::lag(president_party,  n=1)))%>% -->
-<!--   mutate(Inc_party_pres=ifelse(Pres_inc_party==party,1,0), -->
-<!--          Inc_party_house=ifelse(H_incumbent_party==party,1,0)) -->
-<!-- ggplot(data=all_2,aes(x=poll_pct,y=majorvote_pct))+geom_point() -->
-<!-- train <- all_2 %>% dplyr::sample_frac(0.70) -->
-<!-- test  <- dplyr::anti_join(all_2, train, by = c('year','party'))%>% -->
-<!--   add_row(year = 2022, party = 'D',DSPIC_change_pct=.4,poll_pct=44.7,approval=41.7, -->
-<!--           Inc_party_pres=1,Inc_party_house=1,MidtermYear=1)%>% -->
-<!--   add_row(year = 2022, party = 'R',DSPIC_change_pct=.4,poll_pct=45.3,approval=41.7, -->
-<!--           Inc_party_pres=0,Inc_party_house=0,MidtermYear=1) -->
-<!-- lm1<-lm(majorvote_pct~Inc_party_house+Inc_party_pres*MidtermYear+approval:Inc_party_pres+poll_pct,data=train) -->
-<!-- lm1<-lm(seats~Inc_party_house+Inc_party_pres:MidtermYear+approval:Inc_party_pres+poll_pct,data=train) -->
-<!-- lm2<-lm(Seats~Inc_party_house+Inc_party_pres*MidtermYear+Inc_party_pres:DSPIC_change_pct+approval:Inc_party_pres+poll_pct,train) -->
-<!-- test<-data %>% sample_n() -->
-<!-- lm1<-lm(majorvote_pct~party+H_incumbent_party+same_party*MidtermYear+approval+poll_pct,data=all_2%>% filter(year<2008)) -->
-<!-- test$pred<-predict(lm1,test,interval='prediction') -->
-<!-- ggplot(test,aes(x=seats,pred,label=year))+geom_point()+geom_smooth(method=lm)+geom_text()+facet_wrap(~party) -->
-<!-- ``` -->
-<!-- ```{r setup, include=FALSE} -->
-<!-- knitr::opts_chunk$set(echo = FALSE) -->
-<!-- # Loading in necessary libraries -->
-<!-- library(tidyverse) -->
-<!-- library(janitor) -->
-<!-- # Reading in the data -->
-<!-- setwd("/Users/elliegrueskin/Downloads/glm district level forecast") -->
-<!-- expert_ratings <- read_csv("expert_rating.csv") -->
-<!-- historical_results <- read_csv("house party vote share by district 1948-2020.csv") %>%  -->
-<!--   clean_names() -->
-<!-- #### NOTE: 2002, 2004, 2006, 2008, and 2010 cvap numbers are from 2012 #### -->
-<!-- #### NOTE: 2022 cvap numbers are from 2020 #### -->
-<!-- cvap <- read_csv("cvap_district_2002-2022_clean.csv") -->
-<!-- # Selecting columns -->
-<!-- avg_ratings <- expert_ratings %>%  -->
-<!--   select(year, state, district, avg_rating) -->
-<!-- dem_results <- historical_results %>%  -->
-<!--   select(race_year, state, area, dem_votes) %>%  -->
-<!--   rename("year" = "race_year") %>%  -->
-<!--   separate(area, into = c("area", "district"), sep = " ") %>%  -->
-<!--   select(-area) %>%  -->
-<!--   mutate(district = case_when( -->
-<!--     district == "Large" ~ "AL", -->
-<!--     TRUE ~ district -->
-<!--   )) -->
-<!-- # Joining the data and nesting by state and district -->
-<!-- train_data <- avg_ratings %>%  -->
-<!--   filter(year != 2022) %>%  -->
-<!--   # left join as there aren't ratings for every district -->
-<!--   left_join(dem_results, by = c("year", "state", "district")) %>%  -->
-<!--   left_join(cvap, by = c("year", "state", "district" = "cd")) %>%  -->
-<!--   drop_na(cvap) %>%  -->
-<!--   group_by(state, district) %>%  -->
-<!--   filter(n() > 1) %>% # Filtering out single data rows -->
-<!--   group_nest() %>%  -->
-<!--   mutate(data = map(data, ~unnest(., cols = c()))) -->
-<!-- test_data <- avg_ratings %>%  -->
-<!--   filter(year == 2022) %>%  -->
-<!--   left_join(cvap, by = c("year", "state", "district" = "cd")) %>%  -->
-<!--   drop_na(cvap) %>%  -->
-<!--   group_by(state, district) %>%  -->
-<!--   group_nest() %>%  -->
-<!--   mutate(data = map(data, ~unnest(., cols = c()))) -->
-<!-- models <- train_data %>%  -->
-<!--   mutate(model = map(data, ~glm(cbind(dem_votes, cvap-dem_votes) ~ avg_rating,  -->
-<!--                                   data = .x, family = binomial))) %>%  -->
-<!--   select(-data) -->
-<!-- # Extracting TERRIBLE model results -->
-<!-- model_results <- models %>%  -->
-<!--   mutate(mcf_r_squared = map_dbl(model, ~with(summary(.x), 1 - deviance/null.deviance))) -->
-<!-- # Predicting 2022 with a TERRIBLE model -->
-<!-- pred_2022 <- test_data %>% -->
-<!--   # inner join as there may not be historical models for some districts -->
-<!--   inner_join(models, by = c("state", "district")) %>%  -->
-<!--   mutate(preds = map(.x = model, .y = data, ~predict(object = .x, newdata = as.data.frame(.y), -->
-<!--                                                         se.fit = TRUE, -->
-<!--                                                         type = "response")), -->
-<!--          lower = map_dbl(.x = preds, ~.x$fit - (2 * .x$se.fit)), -->
-<!--          fitted = map_dbl(.x = preds, ~.x$fit), -->
-<!--          upper = map_dbl(.x = preds, ~.x$fit + (2 * .x$se.fit))) %>% -->
-<!--   select(state, district, lower, fitted, upper) -->
-<!-- ``` -->
-<!-- ```{r} -->
-<!-- article_api <- Sys.getenv("ARTICLE_API") -->
-<!-- #semantic_api <- Sys.getenv("SEMANTIC_API") -->
-<!-- # set base url -->
-<!-- base_url_art <- "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=" -->
-<!-- #base_url_sem <- "http://api.nytimes.com/svc/semantic/v2/concept/name" -->
-<!-- # set parameters -->
-<!-- library(dotenv) -->
-<!-- library(jsonlite) -->
-<!-- fq <- "&fq=glocation='New York City" -->
-<!-- term <- "putin" -->
-<!-- begin_date <- "20220226" -->
-<!-- end_date <- "20220303" -->
-<!-- complete_url <- paste0(base_url_art,term,fq,"&begin_date=",begin_date,"&end_date=",end_date,"facet_filter=true&api-key=",article_api,sep = "") -->
-<!-- # import dataset to R -->
-<!-- sus <- fromJSON(complete_url)  -->
-<!-- # load up hidden api key -->
-<!-- article_api <- "zbNGtPzlJflHASLOR1jGJDAngZjfCuNK" -->
-<!-- #semantic_api <- Sys.getenv("SEMANTIC_API") -->
-<!-- # set base url -->
-<!-- base_url_art <- "http://api.nytimes.com/svc/search/v2/articlesearch.json?fq=" -->
-<!-- #base_url_sem <- "http://api.nytimes.com/svc/semantic/v2/concept/name"w -->
-<!-- # set parameters -->
-<!-- term <- "Ukraine" -->
-<!-- facet_field <- "day_of_week" -->
-<!-- facet <- "true" -->
-<!-- begin_date <- "20220225" -->
-<!-- end_date <- "20220303" -->
-<!-- complete_url <- "https://api.nytimes.com/svc/search/v2/articlesearch.json?fq=Ukraine&facet_field=day_of_week&facet=true&begin_date=2022022∞&end_date=20220303&api-key=zbNGtPzlJflHASLOR1jGJDAngZjfCuNK" -->
-<!-- complete_url2 <-paste0(base_url_art,fq=term,"&facet_field=",facet_field,"&facet=",facet,"&begin_date=",begin_date,"&end_date=",end_date,"&api-key=",article_api,sep = "") -->
-<!-- sus <- fromJSON(complete_url2)  -->
-<!-- sus$response$meta$hits -->
-<!-- ``` -->
+# Republican rows
+inc_rep&lt;-inc %&gt;% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+# Dem rows
+inc_dem&lt;-inc %&gt;% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+# Bind together
+inc_total&lt;-bind_rows(inc_rep,inc_dem)
+inc_total&lt;-inc_total %&gt;%
+  mutate(party=ifelse(is.na(RepVotesMajorPercent),&#39;D&#39;,&#39;R&#39;),
+    CandidateName=ifelse(party==&#39;R&#39;,RepCandidate,DemCandidate),
+    Status=ifelse(party==&#39;R&#39;,RepStatus,DemStatus),
+    pv2p=ifelse(party==&#39;R&#39;,RepVotesMajorPercent,DemVotesMajorPercent))%&gt;%
+  filter(pv2p!=0)%&gt;%
+  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+         party,CandidateName,Status,pv2p)
+
+
+# Generic polls
+gen_poll&lt;-read_csv(&#39;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv&#39;)
+gen_poll_cl&lt;-gen_poll %&gt;% 
+  filter(days_until_election&lt;30)%&gt;%
+  group_by(year,party)%&gt;%
+  summarise(party_support=mean(support))
+
+#Join datasets together
+dat&lt;-left_join(inc_total,gen_poll_cl,by=c(&#39;year&#39;,&#39;party&#39;))%&gt;%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) %&gt;% 
+mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+dat&lt;-dat %&gt;%
+  group_by(CandidateName)%&gt;%
+  arrange(year)%&gt;%
+  mutate(term=ifelse(Status==&#39;Incumbent&#39;,cumsum(n()),0))%&gt;%
+  ungroup()
+
+dat&lt;- dat %&gt;%
+  group_by(CandidateName)%&gt;%
+  arrange(year)%&gt;%
+ mutate(term = 1:n(),
+        term=term-1)%&gt;%
+  ungroup()
+
+dat&lt;-dat %&gt;%
+  group_by(st_cd_fips,party)%&gt;%
+  arrange(year)%&gt;%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
+         approval_cent=party_support-44.6)%&gt;%
+  ungroup()%&gt;% filter(Uncontested==0)%&gt;%
+  mutate(same_party=ifelse(party==president_party,1,0),
+         party_wins=ifelse(party==winner_party,1,0))
+
+
+lm_oh&lt;-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=dat)
+
+oh_22&lt;-tibble(year=c(2022,2022),party=c(&#39;R&#39;,&#39;D&#39;),term=c(16,0),Status=c(&#39;Incumbent&#39;,&#39;Challenger&#39;),prev=c(53.7,46.3),
+              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7))
+
+stargazer(lm_oh,type=&#39;text&#39;)</code></pre>
+<pre><code>## 
+## ==================================================
+##                            Dependent variable:    
+##                        ---------------------------
+##                                   pv2p            
+## --------------------------------------------------
+## log(term + 1)                   4.898***          
+##                                  (1.418)          
+##                                                   
+## prev                            0.354***          
+##                                  (0.095)          
+##                                                   
+## same_party                       7.037**          
+##                                  (3.080)          
+##                                                   
+## MidtermYear                      7.354**          
+##                                  (2.992)          
+##                                                   
+## same_party:MidtermYear         -14.113***         
+##                                  (4.235)          
+##                                                   
+## Constant                        24.991***         
+##                                  (4.711)          
+##                                                   
+## --------------------------------------------------
+## Observations                       70             
+## R2                                0.450           
+## Adjusted R2                       0.407           
+## Residual Std. Error          8.786 (df = 64)      
+## F Statistic              10.491*** (df = 5; 64)   
+## ==================================================
+## Note:                  *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<pre class="r"><code>oh_22$pred&lt;-predict(lm_oh,oh_22,interval=&#39;prediction&#39;)
+oh_22</code></pre>
+<pre><code>## # A tibble: 2 × 9
+##    year party  term Status      prev MidtermYear same_party party_support
+##   &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;dbl&gt;       &lt;dbl&gt;      &lt;dbl&gt;         &lt;dbl&gt;
+## 1  2022 R        16 Incumbent   53.7           1          0          45.3
+## 2  2022 D         0 Challenger  46.3           1          1          44.7
+## # … with 1 more variable: pred &lt;dbl[,3]&gt;</code></pre>
+<p>This model for Ohio-01 predicts that Incumbent Steve Chabot (R) will receive about 65% of the vote,
+while challenger Greg Landsman (D) will get about 42% of the vote. This is very different
+from the few polls that have been released, suggesting each candidate is at about 47% of the vote.
+However, the confidence intervals are very large, so similar to my earlier section, one of my next steps
+will be to better quantify the confidence intervals.</p>
+<p>This difference between my prediction and the polls may be due to the recent redistricting that my model hasn’t accounted for,
+polling errors, or entirely other causes. Moving forward, I will work on improving
+my Ohio model to include a mixture of polling/expert ratings. I was having trouble with this
+because there are so few years that have data with this information.</p>
 </div>
