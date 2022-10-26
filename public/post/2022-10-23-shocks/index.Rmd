@@ -241,7 +241,7 @@ dat<-dat %>%
 
 ```
 
-```{r model Ohio}
+```{r model Ohio,message=FALSE,warning=FALSE,echo=FALSE}
 lm_oh<-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=dat)
 
 oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
@@ -250,7 +250,7 @@ oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumben
 stargazer(lm_oh,type='text')
 
 oh_22$pred<-predict(lm_oh,oh_22,interval='prediction')
-oh_22[,1:3,7:9]
+oh_22[,c(1:3,7:9)]
 ```
 
 This model for Ohio-01 predicts that Incumbent Steve Chabot (R) will receive about 65% of the vote,

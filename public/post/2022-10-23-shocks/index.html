@@ -114,45 +114,45 @@ and economic data (gdp growth).</p>
 ##                                   seats      majorvote_pct
 ##                                    (1)            (2)     
 ## ----------------------------------------------------------
-## Inc_party_pres                  -60.359***     -4.450**   
-##                                  (17.301)       (2.060)   
+## Inc_party_pres                  -60.628***     -5.407***  
+##                                  (15.773)       (1.834)   
 ##                                                           
-## MidtermYear                      12.405**      2.181***   
-##                                  (5.763)        (0.751)   
+## MidtermYear                     14.767***      2.601***   
+##                                  (5.330)        (0.735)   
 ##                                                           
-## approval                        -0.647***      -0.073***  
-##                                  (0.203)        (0.024)   
+## approval                        -0.647***      -0.080***  
+##                                  (0.203)        (0.025)   
 ##                                                           
-## GDP_growth_pct                   -1.089*        -0.097    
-##                                  (0.555)        (0.067)   
+## GDP_growth_pct                   -0.929*        -0.082    
+##                                  (0.508)        (0.063)   
 ##                                                           
-## poll_pct                         2.288***      0.309***   
-##                                  (0.494)        (0.058)   
+## poll_pct                         2.124***      0.315***   
+##                                  (0.488)        (0.060)   
 ##                                                           
-## lag_seats                        0.572***                 
-##                                  (0.085)                  
+## lag_seats                        0.593***                 
+##                                  (0.073)                  
 ##                                                           
-## lag_pv                                         0.348***   
-##                                                 (0.105)   
+## lag_pv                                         0.399***   
+##                                                 (0.099)   
 ##                                                           
-## Inc_party_pres:MidtermYear      -30.712***     -4.999***  
-##                                  (9.269)        (1.251)   
+## Inc_party_pres:MidtermYear      -30.683***     -5.601***  
+##                                  (7.536)        (1.125)   
 ##                                                           
-## Inc_party_pres:approval          1.097***       0.096**   
-##                                  (0.331)        (0.039)   
+## Inc_party_pres:approval          1.080***      0.121***   
+##                                  (0.313)        (0.037)   
 ##                                                           
-## Inc_party_pres:GDP_growth_pct    1.671**         0.114    
-##                                  (0.792)        (0.097)   
+## Inc_party_pres:GDP_growth_pct    1.651**         0.129    
+##                                  (0.711)        (0.090)   
 ##                                                           
-## Constant                          28.198       22.611***  
-##                                  (17.696)       (3.983)   
+## Constant                          28.775       19.578***  
+##                                  (18.688)       (3.788)   
 ##                                                           
 ## ----------------------------------------------------------
 ## Observations                        51            51      
-## R2                                0.912          0.866    
-## Adjusted R2                       0.893          0.836    
-## Residual Std. Error (df = 41)     12.140         1.480    
-## F Statistic (df = 9; 41)        47.494***      29.412***  
+## R2                                0.924          0.890    
+## Adjusted R2                       0.907          0.866    
+## Residual Std. Error (df = 41)     11.023         1.379    
+## F Statistic (df = 9; 41)        55.141***      36.935***  
 ## ==========================================================
 ## Note:                          *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
 <p>As the model output shows, almost all variables are significant at the 5% level.
@@ -168,8 +168,8 @@ is uncontested.</p>
 <pre><code>## # A tibble: 2 × 4
 ##   party  year pred_seats[,&quot;fit&quot;] [,&quot;lwr&quot;] [,&quot;upr&quot;] pred_vote[,&quot;fit&quot;] [,&quot;lwr&quot;]
 ##   &lt;chr&gt; &lt;dbl&gt;              &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;             &lt;dbl&gt;    &lt;dbl&gt;
-## 1 D      2022               198.     171.     225.              48.0     44.8
-## 2 R      2022               238.     212.     264.              52.5     49.4
+## 1 D      2022               197.     174.     221.              47.6     44.6
+## 2 R      2022               238.     214.     262.              52.4     49.5
 ## # … with 1 more variable: pred_vote[3] &lt;dbl&gt;</code></pre>
 <p>As the graphs above show, the model fits fairly well across the testing dataset. And,
 the prediction for 2022 is that the Democrats will get 207 seats with the Republicans
@@ -188,12 +188,6 @@ provided by my simulations.</p>
 structure din the long format with the unit of analysis at the candidate*year. One
 important data choice was that I removed uncontested races, but included a term for
 whether the prior election was uncontested.</p>
-<pre class="r"><code>lm_oh&lt;-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=dat)
-
-oh_22&lt;-tibble(year=c(2022,2022),party=c(&#39;R&#39;,&#39;D&#39;),term=c(16,0),Status=c(&#39;Incumbent&#39;,&#39;Challenger&#39;),prev=c(53.7,46.3),
-              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7))
-
-stargazer(lm_oh,type=&#39;text&#39;)</code></pre>
 <pre><code>## 
 ## ==================================================
 ##                            Dependent variable:    
@@ -226,15 +220,11 @@ stargazer(lm_oh,type=&#39;text&#39;)</code></pre>
 ## F Statistic              10.491*** (df = 5; 64)   
 ## ==================================================
 ## Note:                  *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
-<pre class="r"><code>oh_22$pred&lt;-predict(lm_oh,oh_22,interval=&#39;prediction&#39;)
-oh_22[,1:3,7:9]</code></pre>
-<pre><code>## Warning in drop &amp;&amp; length(xo) == 1L: &#39;length(x) = 3 &gt; 1&#39; in coercion to
-## &#39;logical(1)&#39;</code></pre>
-<pre><code>## # A tibble: 2 × 3
-##    year party  term
-##   &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;
-## 1  2022 R        16
-## 2  2022 D         0</code></pre>
+<pre><code>## # A tibble: 2 × 6
+##    year party  term same_party party_support pred[,&quot;fit&quot;] [,&quot;lwr&quot;] [,&quot;upr&quot;]
+##   &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;      &lt;dbl&gt;         &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+## 1  2022 R        16          0          45.3         65.3     46.3     84.2
+## 2  2022 D         0          1          44.7         41.7     23.5     59.8</code></pre>
 <p>This model for Ohio-01 predicts that Incumbent Steve Chabot (R) will receive about 65% of the vote,
 while challenger Greg Landsman (D) will get about 42% of the vote. This is very different
 from the few polls that have been released, suggesting each candidate is at about 47% of the vote.
@@ -261,7 +251,7 @@ because there are so few years that have data with this information.</p>
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-10-26 13:24:55.371772 -0400 EDT m=&#43;0.183934542">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-10-26 13:35:22.703847 -0400 EDT m=&#43;0.183132918">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
