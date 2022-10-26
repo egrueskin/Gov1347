@@ -1,0 +1,455 @@
+---
+title: "Shocks"
+author: "R package build"
+date: "2022-10-23"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+categories: []
+summary: null
+tags: []
+slug: []
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse); library(knitr)
+```
+# Intro and Shocks Discussion
+
+Since Election Day is 13 days away, I will mainly focus this blog post on refining
+my current models at the nationwide and district level. However, I will also include a 
+brief summary of this week's topic, Shocks, as I think it is important
+in considering uncertainty in my models. 
+
+Election shocks can be described as events that one couldn't have forecasted 
+but could significantly affect  election outcomes. In this year specifically, the Dobbs decision
+to overturn Roe v. Wade, the war in Ukraine, and the Mar-a-Lago investigation are 
+considered shocks to the 2022 election. It is challenging to estimate the precise
+impacts of a given shock because we do not run elections prior and after, but
+polls (generic and candidate-based) often capture the ways in which the shock might have
+affected public opinion. 
+
+In my models, I do not plan to incorporate data about the effects of shocks,
+largely because it is unclear which shocks (if any) may occur between now and the election.
+Yet, I think this topic is very important to mention because it adds further
+uncertainty to the prediction estimates and demonstrates how elections do not occur in a vacuum, but 
+rather in a complicated geopolitical setting where fundamental trends may not hold.
+
+# Model Update
+
+I have chosen against using a pooled model for my final prediction because 
+I have decided to do a nationwide rather than district-level analysis. In this way,
+myn model represents an aggregated rather than pooled approach.
+
+I have decided to stick with the nationwide approach because I am not confident
+enough in my district-based data to generate 436 unique predictions. Parituclarly with 
+the redistricting in 2021, a district's previous makeup and voteshare can vary significantly
+for the upcoming cycle. As well, there are a few new districts created, of which my only data would be
+from expert ratings.
+
+I believe that using an aggregated US seatshare model is more within the scope of 
+my data. I will build models for both predicting nationwide seat share and voteshare.
+Additionally, I will perform specific district-based analysis for my district, Ohio-01,
+because i am confident in the level of polling and information about this area. 
+
+
+# Nationwide Model Update
+```{r explore,message=FALSE,warning=FALSE,include=FALSE}
+library(tidyverse)
+# Read in historical data
+inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) 
+# Read in generic poll data, 52 days before election
+# For some reason, the 2008 data was off so I did that year separately
+gen_poll<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>%
+  filter(days_until_election<52&year!=2008)%>%
+  group_by(year)%>%
+  summarise(D=mean(dem),R=mean(rep))%>%
+  pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct')
+gen_poll_2<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>%
+  filter(days_until_election<52&year==2008)%>%
+  group_by(year)%>%
+  summarise(D=mean(rep),R=mean(dem))%>%
+  pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct')
+gen_poll<-bind_rows(gen_poll,gen_poll_2)
+
+# Read in gdp data
+gdp<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GDP_quarterly.csv")%>%
+  mutate(Eyr=ifelse(year%%2,0,1)) %>%
+  filter(Eyr==1&quarter_yr==3)%>%
+  dplyr::select(year,GDP_growth_pct)
+library(stringr)
+
+# Read in presidential approval data 
+pres<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/pres_approval_gallup_1941-2022.csv")%>%
+  group_by(year)%>%
+  summarise(approval=mean(approve))
+
+# Join datasets together
+inc_gen<-inner_join(inc,gen_poll,by=c('year','party'))
+all<-inner_join(inc_gen,gdp,by='year')
+all<-inner_join(all,pres,by='year')
+
+#Clean data to have lagged data
+all_2<-all %>% 
+  arrange(party,year)%>%
+  dplyr::mutate(Pres_inc_party=case_when(year==1948~'NA',TRUE~dplyr::lag(president_party,  n=1)))%>%
+  dplyr::mutate(Inc_party_pres=ifelse(Pres_inc_party==party,1,0),
+         Inc_party_house=ifelse(H_incumbent_party==party,1,0),
+         lag_seats=lag(seats),
+         lag_pv=lag(majorvote_pct))%>% filter(year!=1948)
+
+```
+
+```{r plots,message=FALSE,warning=FALSE,echo=FALSE}
+ggplot(data=all_2%>% filter(MidtermYear==1),aes(x=approval,y=majorvote_pct,label=year))+
+  facet_wrap(~Inc_party_pres,labeller=label_both)+geom_smooth(method='lm')+geom_text()+
+  labs(title='Party Vote percentage by presidential approval rating',
+       subtitle='Faceted by whether in incumbent party, restricted to midterm years')
+
+ggplot(data=all_2%>% filter(MidtermYear==1),aes(x=approval,y=seats,label=year))+
+  facet_wrap(~Inc_party_pres,labeller=label_both)+geom_smooth(method='lm')+geom_text()+
+  labs(title='Party Seat share by presidential approval rating',
+       subtitle='Faceted by whether in incumbent party, restricted to midterm years')
+```
+
+```{r model build,message=FALSE,warning=FALSE,echo=FALSE}
+# Model
+
+# Set training and testing datasets, add in data for 2022
+split1<- sample(c(rep(0, ceiling(0.7 * nrow(all_2))), rep(1, 0.3 * nrow(all_2))))
+train <- all_2[split1 == 0, ]  
+test <- all_2[split1 == 1, ]  %>%
+  add_row(year = 2022, party = 'D',GDP_growth_pct=.6,poll_pct=44.7,approval=41.7,
+          Inc_party_pres=1,Inc_party_house=1,MidtermYear=1,lag_seats=222,lag_pv=51.5)%>%
+  add_row(year = 2022, party = 'R',GDP_growth_pct=.6,poll_pct=45.3,approval=41.7,
+          Inc_party_pres=0,Inc_party_house=0,MidtermYear=1,lag_seats=212,lag_pv=48.5)
+
+lm_seats<-lm(seats~Inc_party_pres*(MidtermYear+approval+GDP_growth_pct)+poll_pct+lag_pv,data=train)
+lm_vote<-lm(majorvote_pct~Inc_party_pres*(MidtermYear+approval+GDP_growth_pct)+poll_pct+lag_pv,data=train)
+
+test$pred_seats<-predict(lm_seats,test,interval='prediction')
+test$pred_vote<-predict(lm_vote,test,interval='prediction')
+ggplot(test,aes(x=seats,pred_seats[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+scale_color_manual(values=c("Blue","Red"))
+ggplot(test,aes(x=majorvote_pct,pred_vote[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+scale_color_manual(values=c("Blue","Red"))
+
+tab<-test[test$year==2022,c(3,2,22:23)]
+tab
+```
+
+
+
+# Ohio section
+
+```{r, eval = TRUE, echo=FALSE, message=FALSE, warning=FALSE}
+# load polling data
+dist_polls_2018_2022 <- read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/dist_polls_2018-2022.csv")
+
+# subset
+polls_df <- dist_polls_2018_2022 %>%
+  select(pollster, sponsors, display_name, fte_grade,
+         start_date, end_date, sample_size, population, cycle, election_date,
+         party, candidate_name, pct, st_cd_fips) %>%
+  rename('year' = 'cycle') %>% # for merging
+  filter(st_cd_fips == '3901')
+
+# merge with incumbency data
+# load data
+incumb_df <- read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
+# filter for specific district and year
+oh <- NA
+oh <- incumb_df %>%
+  filter(year == c('2018', '2020'), st_cd_fips == '3901')
+
+# join by 'year'
+oh <- left_join(oh, polls_df)%>%
+  filter(party!='LIB')%>%
+  mutate(VoteShare=ifelse(party=='REP',RepVotesMajorPercent,DemVotesMajorPercent),
+         Incumbent=ifelse(party=='REP'&RepStatus=='Incumbent',1,0))
+
+# fit lm
+dat_poll_inc <- oh[oh$Incumbent==1,]
+
+#dat_poll_chl <- oh[!oh$INCUMB,]
+mod_poll_inc <- lm(VoteShare ~ pct, data = dat_poll_inc)
+#mod_poll_chl <- lm(DemVotesMajorPercent ~ pct, data = dat_poll_chl)
+
+```
+\pause
+```{r, echo=TRUE, eval= TRUE}
+# predict 2022
+oh_22 <- polls_df %>%
+  filter(st_cd_fips == '3901', year == 2022, party == 'REP')
+
+pred_poll_inc <- predict(mod_poll_inc, oh_22, 
+                          interval = "prediction", level=0.95)
+pred_poll_inc
+```
+
+
+
+<!-- ```{r} -->
+
+<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/inc.csv") -->
+
+<!-- inc_2_total<-inc %>% -->
+<!-- mutate(party_wins=ifelse(party==winner_party,1,0), -->
+<!--        incumbent=ifelse(Status=='Incumbent',1,0), -->
+<!--        district_num=substr(st_cd_fips,3,4))%>% -->
+<!--   rename('year'='Year') -->
+
+<!-- cands_22<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/house_cands.csv")%>% -->
+<!--   mutate(year=2022,president_party='D')%>%mutate(dist_numeric=as.numeric(district), -->
+<!--                                                  district_num=case_when( -->
+<!--                                                    dist_numeric<10~paste0('0',district), -->
+<!--                                                    is.na(dist_numeric)~'00', -->
+<!--                                                    TRUE~district -->
+<!--                                                  ))%>% -->
+<!--   rename(CandidateName=cand,party=cand_party)%>% -->
+<!--   filter(party %in% c('Democratic','Republican'))%>% -->
+<!--   mutate(party=substr(party,1,1))%>% -->
+<!--   dplyr::select(-c(district,dist_numeric))%>% -->
+<!--   dplyr::distinct(CandidateName, .keep_all = TRUE) -->
+
+<!-- exp<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/expert_rating.csv")%>% -->
+<!--   mutate(dist_numeric=as.numeric(district), -->
+<!--          district_num=case_when( -->
+<!--            dist_numeric<10~paste0('0',district), -->
+<!--            is.na(dist_numeric)~'00', -->
+<!--            TRUE~district))%>% -->
+<!--   dplyr::select(c(year,state,district_num,cook))%>% filter(year!=2022) -->
+
+<!-- cands_22_ <- cands_22 %>% group_by(state,district_num)%>% -->
+<!--   mutate(n=n(),Uncontested=ifelse(n>1,0,1))%>% -->
+<!--   ungroup() -->
+
+<!-- cand<-bind_rows(inc_2_total,cands_22_) -->
+
+<!-- cand_fin<-cand %>% -->
+<!--   group_by(state,district_num,party)%>% -->
+<!--   arrange(year)%>% -->
+<!--   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested))%>% -->
+<!--   ungroup() -->
+
+<!-- dat<-left_join(cand_fin,exp,by=c('state','district_num','year'))%>% -->
+<!--   filter(!(is.na(cpvi)&is.na(cook))) -->
+<!-- library(MASS) -->
+<!-- library(ciTools) -->
+<!-- lm1<-glm(party_wins~prev+same_party*MidtermYear+party_support+party,data=cand_fin,family='binomial') -->
+<!-- cand_22<-cand_fin %>% filter(year==2022)%>% -->
+<!--   mutate(same_party=ifelse(party=='D',1,0), -->
+<!--          MidtermYear=1, -->
+<!--          party_support=ifelse(party=='D',44.7,45.4)) -->
+<!-- cand_22$pred<-predict(lm1,cand_22,type='response',interval='prediction') -->
+<!-- cand_fin$pred<-predict(lm1,cand_fin) -->
+<!-- cand_22 %>% dplyr::select(c('state','district_num','prev','pred')) %>% view() -->
+
+<!-- lm1<-lm(pv2p~prev+same_party*MidtermYear+party_support+party+Unc_prev,data=cand_fin%>% filter(Uncontested==0)) -->
+<!-- c -->
+<!-- ``` -->
+
+
+<!-- ```{r model} -->
+<!-- library(tidyverse) -->
+<!-- library(lubridate) -->
+<!-- library(stargazer) -->
+<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/inc.csv") -->
+
+
+<!-- inc_2_total<-inc %>%` -->
+<!--   mutate(party_wins=ifelse(party==winner_party,1,0), -->
+<!--          incumbent=ifelse(Status=='Incumbent',1,0)) -->
+
+<!-- cands_22<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/house_cands.csv")%>% -->
+<!--   mutate(year=2022,president_party='D')%>%mutate(dist_numeric=as.numeric(district), -->
+<!--          district_num=case_when( -->
+<!--    dist_numeric<10~paste0('0',district), -->
+<!--    is.na(dist_numeric)~'00', -->
+<!--     TRUE~district -->
+<!--   ))%>% -->
+<!--   rename(CandidateName=cand,party=cand_party)%>% -->
+<!--   filter(party %in% c('Democratic','Republican'))%>% -->
+<!--   mutate(party=substr(party,1,1))%>% -->
+<!--   select(-c(district,dist_numeric)) -->
+
+<!-- cands_22_ <- cands_22 %>% group_by(state,district_num)%>% -->
+<!--   mutate(n=n(),Uncontested=ifelse(n>1,1,0))%>% -->
+<!--   ungroup() -->
+
+<!-- cand<-bind_rows(inc_2_total,cands_22_) -->
+
+<!-- cand_fin<-cand %>% -->
+<!--   group_by(state,district_num,party)%>% -->
+<!--   arrange(year)%>% -->
+<!--   mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested))%>% -->
+<!--   ungroup() -->
+<!-- dat_test<-inc %>% filter(cycle=='2018'&Uncontested==0) -->
+<!-- dat_train<-inc %>% filter(cycle<'2018'&Uncontested==0) -->
+<!-- g0<-glm(party_wins~prev+Unemployed_prct+approval_cent+ -->
+<!--           party+same_party*(MidtermYear), -->
+<!--         family=binomial(link=logit),data=inc) -->
+
+<!-- inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>% -->
+<!--     mutate(MidtermYear=ifelse(year%%4,1,0))  -->
+<!-- gen_poll<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>% -->
+<!--   filter(days_until_election<52)%>% -->
+<!--   group_by(year)%>% -->
+<!--   summarise(D=mean(dem),R=mean(rep))%>% -->
+<!--   pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct') -->
+<!-- rdi<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/RDI_quarterly.csv")%>% -->
+<!--   filter(quarter_yr==3)%>% -->
+<!--   select(year,DSPIC_change_pct,DSPIC_change_qt) -->
+<!-- library(stringr) -->
+<!-- pres<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/pres_approval_gallup_1941-2022.csv")%>% -->
+<!--   group_by(year)%>% -->
+<!--   summarise(approval=mean(approve)) -->
+<!-- inc_gen<-inner_join(inc,gen_poll,by=c('year','party')) -->
+<!-- all<-inner_join(inc_gen,rdi,by='year') -->
+<!-- all<-inner_join(all,pres,by='year') -->
+
+<!-- all_2<-all %>%  -->
+<!--   arrange(party,year)%>% -->
+<!--   dplyr::mutate(Pres_inc_party=case_when(year==1960~'NA',TRUE~dplyr::lag(president_party,  n=1)))%>% -->
+<!--   mutate(Inc_party_pres=ifelse(Pres_inc_party==party,1,0), -->
+<!--          Inc_party_house=ifelse(H_incumbent_party==party,1,0)) -->
+
+<!-- ggplot(data=all_2,aes(x=poll_pct,y=majorvote_pct))+geom_point() -->
+
+<!-- train <- all_2 %>% dplyr::sample_frac(0.70) -->
+<!-- test  <- dplyr::anti_join(all_2, train, by = c('year','party'))%>% -->
+<!--   add_row(year = 2022, party = 'D',DSPIC_change_pct=.4,poll_pct=44.7,approval=41.7, -->
+<!--           Inc_party_pres=1,Inc_party_house=1,MidtermYear=1)%>% -->
+<!--   add_row(year = 2022, party = 'R',DSPIC_change_pct=.4,poll_pct=45.3,approval=41.7, -->
+<!--           Inc_party_pres=0,Inc_party_house=0,MidtermYear=1) -->
+
+<!-- lm1<-lm(majorvote_pct~Inc_party_house+Inc_party_pres*MidtermYear+approval:Inc_party_pres+poll_pct,data=train) -->
+
+<!-- lm1<-lm(seats~Inc_party_house+Inc_party_pres:MidtermYear+approval:Inc_party_pres+poll_pct,data=train) -->
+<!-- lm2<-lm(Seats~Inc_party_house+Inc_party_pres*MidtermYear+Inc_party_pres:DSPIC_change_pct+approval:Inc_party_pres+poll_pct,train) -->
+<!-- test<-data %>% sample_n() -->
+<!-- lm1<-lm(majorvote_pct~party+H_incumbent_party+same_party*MidtermYear+approval+poll_pct,data=all_2%>% filter(year<2008)) -->
+
+<!-- test$pred<-predict(lm1,test,interval='prediction') -->
+<!-- ggplot(test,aes(x=seats,pred,label=year))+geom_point()+geom_smooth(method=lm)+geom_text()+facet_wrap(~party) -->
+<!-- ``` -->
+
+<!-- ```{r setup, include=FALSE} -->
+<!-- knitr::opts_chunk$set(echo = FALSE) -->
+
+<!-- # Loading in necessary libraries -->
+<!-- library(tidyverse) -->
+<!-- library(janitor) -->
+
+<!-- # Reading in the data -->
+<!-- setwd("/Users/elliegrueskin/Downloads/glm district level forecast") -->
+<!-- expert_ratings <- read_csv("expert_rating.csv") -->
+<!-- historical_results <- read_csv("house party vote share by district 1948-2020.csv") %>%  -->
+<!--   clean_names() -->
+
+<!-- #### NOTE: 2002, 2004, 2006, 2008, and 2010 cvap numbers are from 2012 #### -->
+<!-- #### NOTE: 2022 cvap numbers are from 2020 #### -->
+<!-- cvap <- read_csv("cvap_district_2002-2022_clean.csv") -->
+
+<!-- # Selecting columns -->
+<!-- avg_ratings <- expert_ratings %>%  -->
+<!--   select(year, state, district, avg_rating) -->
+
+<!-- dem_results <- historical_results %>%  -->
+<!--   select(race_year, state, area, dem_votes) %>%  -->
+<!--   rename("year" = "race_year") %>%  -->
+<!--   separate(area, into = c("area", "district"), sep = " ") %>%  -->
+<!--   select(-area) %>%  -->
+<!--   mutate(district = case_when( -->
+<!--     district == "Large" ~ "AL", -->
+<!--     TRUE ~ district -->
+<!--   )) -->
+
+<!-- # Joining the data and nesting by state and district -->
+<!-- train_data <- avg_ratings %>%  -->
+<!--   filter(year != 2022) %>%  -->
+<!--   # left join as there aren't ratings for every district -->
+<!--   left_join(dem_results, by = c("year", "state", "district")) %>%  -->
+<!--   left_join(cvap, by = c("year", "state", "district" = "cd")) %>%  -->
+<!--   drop_na(cvap) %>%  -->
+<!--   group_by(state, district) %>%  -->
+<!--   filter(n() > 1) %>% # Filtering out single data rows -->
+<!--   group_nest() %>%  -->
+<!--   mutate(data = map(data, ~unnest(., cols = c()))) -->
+
+<!-- test_data <- avg_ratings %>%  -->
+<!--   filter(year == 2022) %>%  -->
+<!--   left_join(cvap, by = c("year", "state", "district" = "cd")) %>%  -->
+<!--   drop_na(cvap) %>%  -->
+<!--   group_by(state, district) %>%  -->
+<!--   group_nest() %>%  -->
+<!--   mutate(data = map(data, ~unnest(., cols = c()))) -->
+
+<!-- models <- train_data %>%  -->
+<!--   mutate(model = map(data, ~glm(cbind(dem_votes, cvap-dem_votes) ~ avg_rating,  -->
+<!--                                   data = .x, family = binomial))) %>%  -->
+<!--   select(-data) -->
+
+<!-- # Extracting TERRIBLE model results -->
+<!-- model_results <- models %>%  -->
+<!--   mutate(mcf_r_squared = map_dbl(model, ~with(summary(.x), 1 - deviance/null.deviance))) -->
+
+<!-- # Predicting 2022 with a TERRIBLE model -->
+<!-- pred_2022 <- test_data %>% -->
+<!--   # inner join as there may not be historical models for some districts -->
+<!--   inner_join(models, by = c("state", "district")) %>%  -->
+<!--   mutate(preds = map(.x = model, .y = data, ~predict(object = .x, newdata = as.data.frame(.y), -->
+<!--                                                         se.fit = TRUE, -->
+<!--                                                         type = "response")), -->
+<!--          lower = map_dbl(.x = preds, ~.x$fit - (2 * .x$se.fit)), -->
+<!--          fitted = map_dbl(.x = preds, ~.x$fit), -->
+<!--          upper = map_dbl(.x = preds, ~.x$fit + (2 * .x$se.fit))) %>% -->
+<!--   select(state, district, lower, fitted, upper) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- article_api <- Sys.getenv("ARTICLE_API") -->
+<!-- #semantic_api <- Sys.getenv("SEMANTIC_API") -->
+
+<!-- # set base url -->
+<!-- base_url_art <- "http://api.nytimes.com/svc/search/v2/articlesearch.json?q=" -->
+<!-- #base_url_sem <- "http://api.nytimes.com/svc/semantic/v2/concept/name" -->
+
+<!-- # set parameters -->
+<!-- library(dotenv) -->
+<!-- library(jsonlite) -->
+<!-- fq <- "&fq=glocation='New York City" -->
+<!-- term <- "putin" -->
+<!-- begin_date <- "20220226" -->
+<!-- end_date <- "20220303" -->
+<!-- complete_url <- paste0(base_url_art,term,fq,"&begin_date=",begin_date,"&end_date=",end_date,"facet_filter=true&api-key=",article_api,sep = "") -->
+
+
+<!-- # import dataset to R -->
+<!-- sus <- fromJSON(complete_url)  -->
+
+
+<!-- # load up hidden api key -->
+<!-- article_api <- "zbNGtPzlJflHASLOR1jGJDAngZjfCuNK" -->
+<!-- #semantic_api <- Sys.getenv("SEMANTIC_API") -->
+
+<!-- # set base url -->
+<!-- base_url_art <- "http://api.nytimes.com/svc/search/v2/articlesearch.json?fq=" -->
+<!-- #base_url_sem <- "http://api.nytimes.com/svc/semantic/v2/concept/name"w -->
+
+<!-- # set parameters -->
+<!-- term <- "Ukraine" -->
+<!-- facet_field <- "day_of_week" -->
+<!-- facet <- "true" -->
+<!-- begin_date <- "20220225" -->
+<!-- end_date <- "20220303" -->
+<!-- complete_url <- "https://api.nytimes.com/svc/search/v2/articlesearch.json?fq=Ukraine&facet_field=day_of_week&facet=true&begin_date=2022022∞&end_date=20220303&api-key=zbNGtPzlJflHASLOR1jGJDAngZjfCuNK" -->
+
+
+<!-- complete_url2 <-paste0(base_url_art,fq=term,"&facet_field=",facet_field,"&facet=",facet,"&begin_date=",begin_date,"&end_date=",end_date,"&api-key=",article_api,sep = "") -->
+<!-- sus <- fromJSON(complete_url2)  -->
+<!-- sus$response$meta$hits -->
+<!-- ``` -->
+
