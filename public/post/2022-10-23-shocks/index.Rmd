@@ -163,8 +163,8 @@ tab
 ```
 
 As the graphs above show, the model fits fairly well across the testing dataset. And,
-the prediction for 2022 is that the Democrats will get 207 seats with the Republicans
-receiving 232 seats. This sum (439) is greater than the total sum of seats (436),
+the prediction for 2022 is that the Democrats will get 197 seats with the Republicans
+receiving 241 seats. This sum (438) is greater than the total sum of seats (436),
 so I will work on considering how to best account for this constraint. Similarly,
 my model predicts that Republicans will get about 53% of the vote while Democrats
 will receive about 47.7% of the vote. The confidence intervals are fairly large and 
@@ -259,8 +259,7 @@ from the few polls that have been released, suggesting each candidate is at abou
 However, the confidence intervals are very large, so similar to my earlier section, one of my next steps
 will be to better quantify the confidence intervals.
 
-This difference between my prediction and the polls may be due to the recent redistricting that my model hasn't accounted for, 
-polling errors, or entirely other causes. Moving forward, I will work on improving
+This difference between my prediction and the polls may be due to the recent redistricting that my model hasn't accounted for, polling errors, or entirely other causes. Moving forward, I will work on improving
 my Ohio model to include a mixture of polling/expert ratings. I was having trouble with this 
 because there are so few years that have data with this information.
 
