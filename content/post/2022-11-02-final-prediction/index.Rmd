@@ -2,8 +2,11 @@
 title: "Final Prediction"
 author: "R package build"
 date: "2022-11-02"
-output: pdf_document
-summary: Here is my final predicton model, using data available leading up to 11/7 at 4pm EST.
+output:
+  html_document:
+    df_print: paged
+summary: Here is my final predicton model, using data available leading up to 11/7
+  at 4pm EST.
 categories: []
 tags: []
 slug: []
@@ -51,7 +54,7 @@ to test whether house candidates are penalized or rewarded for the performance o
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse); library(knitr); library(stargazer)
+library(tidyverse); library(knitr); library(stargazer);library(tinytex)
 ```
 
 ```{r explore,message=FALSE,warning=FALSE,include=FALSE}
@@ -117,10 +120,13 @@ the party represented that of the incumbent president (SamePartyPres). Coefficie
 
 Here are the exact formulas written out: 
 
-$DemVoteShare$=$\beta_0$+$\beta_{1}SamePartyPres_i$+$\kappa_{im}SamePartyPres_i*MidtermYear_m$+$\gamma_iSamePartyPres_i*PresidentialApproval$+$\rho_iSamePartyPres_i*GDPgrowthpct$+$\beta_2*genericballotpct$+
-$\beta_3*lagvoteshare$
-$RepSeatShare$=$\beta_0$+$\beta_{1}SamePartyPres_i$+$\kappa_{im}SamePartyPres_i*MidtermYear_m$+$\gamma_iSamePartyPres_i*PresidentialApproval$+$\rho_iSamePartyPres_i*GDPgrowthpct$+$\beta_2*genericballotpct$+
-$\beta_3*lagseatshare$
+```{r img-with-knitr, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Caption for this figure 1'}
+knitr::include_graphics("images/voteshare.png")
+```
+```{r img-with-knitr, echo=FALSE, fig.align='center', out.width='100%', fig.cap='Caption for this figure 1'}
+knitr::include_graphics("images/seatshare.png")
+```
+
 
 I split my dataset into two parts: training (70%) and testing (30%) so I could 
 perform out of sample validation on my models. 
