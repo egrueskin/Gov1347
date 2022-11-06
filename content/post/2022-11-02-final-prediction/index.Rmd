@@ -251,6 +251,7 @@ ggplot(data=tab,aes(x=party,y=pred_vote_fit,col=party))+geom_point()+geom_errorb
 
 ```
 
+My model predicts that Democrats
 
 #### Ohio 1st District 
 
