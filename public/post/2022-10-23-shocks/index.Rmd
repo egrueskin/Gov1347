@@ -154,8 +154,8 @@ Hence, for every year, there are 2 observations separated by party.
 ```{r model validation, message=FALSE,warning=FALSE,echo=FALSE}
 test$pred_seats<-predict(lm_seats,test,interval='prediction')
 test$pred_vote<-predict(lm_vote,test,interval='prediction')
-ggplot(test,aes(x=seats,pred_seats[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label(title='Predicted Seats vs. Actual Seats')+scale_color_manual(values=c("Blue","Red"))
-ggplot(test,aes(x=majorvote_pct,pred_vote[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label(title='Predicted Voteshare vs. Actual Voteshare')+scale_color_manual(values=c("Blue","Red"))
+ggplot(test,aes(x=seats,pred_seats[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+labs(title='Predicted Seats vs. Actual Seats')+scale_color_manual(values=c("Blue","Red"))+facet_wrap(~party)
+ggplot(test,aes(x=majorvote_pct,pred_vote[,"fit"],label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+labs(title='Predicted Voteshare vs. Actual Voteshare')+scale_color_manual(values=c("Blue","Red"))
 
 
 tab<-test[test$year==2022,c(3,2,22:23)]
@@ -243,6 +243,7 @@ dat<-dat %>%
 
 ```{r model Ohio,message=FALSE,warning=FALSE,echo=FALSE}
 lm_oh<-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=dat)
+lm_oh<-lm(pv2p~Status+prev+same_party:MidtermYear,data=dat)
 
 oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
               MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7))

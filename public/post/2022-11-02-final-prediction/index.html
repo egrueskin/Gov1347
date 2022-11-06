@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+		
+		
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Final Prediction &middot; My New Hugo Site</title>
+
+		
+		<link rel="stylesheet" href="/css/style.css">
+		<link rel="stylesheet" href="/css/fonts.css">
+		
+		<link rel="icon" href="/favicon.ico"/>
+		<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+		
+		<link href="" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+
+		<script src="/js/darkmode.js"></script>
+	</head>
+
+    <body>
+        		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					
+						<h2 class="nav-title">My New Hugo Site</h2>
+					
+				</a>
+				<ul>
+    
+    
+</ul>
+			</div>
+		</nav>
+
+        <div id="darkModeToggle" onclick="toggleDarkMode()">
+  &#9680; 
+</div>
+
+        
+
+<main>
+	
+
+
+        <div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        R package build
+        <br>
+        <span>on&nbsp;</span><time datetime="2022-11-02 00:00:00 &#43;0000 UTC">November 2, 2022</time>
+</div>
+
+		<h1 class="post-title">Final Prediction</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+
+<div id="overview" class="section level1">
+<h1>Overview</h1>
+<p>Over the course of the semester, I have been building models to forecast the outcomes
+of the 2022 US House Elections. With each week devoted to a different theme that can
+be considered predictive of an election’s outcome, I have had the opportunity
+to work with a variety of datasets and consider the best context for each variable.
+I have built 3 models over the semester:
+1. Nationwide Seat Share
+2. Nationwide Vote Share
+3. Vote Share in Ohio’s 1st District House Race</p>
+<p>In this post, I will detail the decisions and trade-offs that went into each of the models.
+My final predictions are that Republicans will gain control over the seat, winning
+20 new seats and taking a lead of 240-198 seats. However, the confidence interval is large and captures
+. Similarly, I predict that Republicans will reach the majority of the nationwide
+popular vote at 52.7% but have a confidence interval of (49.7,52), suggesting my
+model is not 95% confident that they will win the majority. Finally, for Ohio’s 1st district, I implement two different regression methods. Both forecast that Incumbent Steve Chabot (R) will
+beat challenger Greg Landsman (D) by a small margin of about 1-3 percentage points, but
+the 95% confidence interval again captures the possibility of him losing the seat.</p>
+<div id="nationwide-models" class="section level4">
+<h4>Nationwide Models</h4>
+</div>
+</div>
+<div id="dataset-and-setup" class="section level1">
+<h1>Dataset and Setup</h1>
+<p>For my nationwide models, I join a number of datasets with information from the
+1948-2020 elections. My primary dataset is the voting information for each year’s election,
+where the unit of analysis is the party*year, including variables like: the party’s vote share, seat share,
+the party of the president after the election, and the incumbent party of the house majority.
+I then built variables for whether or not the party matches the incumbent president’s party, whether or not it is
+a midterm year, the party’s seat share and vote share from the previous election.</p>
+<p>Next, I merged this with the party’s average generic ballot polling in the 52 days prior to the election. In generic ballot polls,
+the surveyor asks the likely voter which party they are planning to support in the upcoming election. These are performed at a nationwide-level
+and provide a pulse on each party’s favorableness. I also included economic data into my main dataset,
+incorporating the gdp growth percentage in the quarter prior to the election.
+Finally, I included the sitting president’s mean approval ratings into my analysis
+to test whether house candidates are penalized or rewarded for the performance of the president.</p>
+</div>
+<div id="model-description-justification" class="section level1">
+<h1>Model Description, Justification</h1>
+<p>To build my forecasting models, I used a linear model to predict each party’s
+voteshare and seatshare, using all 72 observations (36 years*2 parties)
+and the following variables:
+1. Interaction Term for whether it is a Midterm Year interacted with a binary for whether
+the party represented that of the incumbent president (SamePartyPres). Coefficient:<span class="math inline">\(\kappa_{im}\)</span>
+2. Interaction term for the presidential approval rating interacted with SamePartyPres. Coefficient: <span class="math inline">\(\gamma_i\)</span>
+3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres. Coefficient: <span class="math inline">\(\rho_i\)</span>
+4. The party’s generic ballot percentage. Coefficient: <span class="math inline">\(\beta_1\)</span>
+5. The party’s voteshare or seatshare from the prior election. Coefficient: <span class="math inline">\(\beta_2\)</span></p>
+<p>Here are the exact formulas written out:</p>
+<p><span class="math inline">\(DemVoteShare\)</span>=<span class="math inline">\(\beta_0\)</span>+<span class="math inline">\(\beta_{1}SamePartyPres_i\)</span>+<span class="math inline">\(\kappa_{im}SamePartyPres_i*MidtermYear_m\)</span>+<span class="math inline">\(\gamma_iSamePartyPres_i*PresidentialApproval\)</span>+<span class="math inline">\(\rho_iSamePartyPres_i*GDPgrowthpct\)</span>+<span class="math inline">\(\beta_2*genericballotpct\)</span>+
+<span class="math inline">\(\beta_3*lagvoteshare\)</span>
+<span class="math inline">\(RepSeatShare\)</span>=<span class="math inline">\(\beta_0\)</span>+<span class="math inline">\(\beta_{1}SamePartyPres_i\)</span>+<span class="math inline">\(\kappa_{im}SamePartyPres_i*MidtermYear_m\)</span>+<span class="math inline">\(\gamma_iSamePartyPres_i*PresidentialApproval\)</span>+<span class="math inline">\(\rho_iSamePartyPres_i*GDPgrowthpct\)</span>+<span class="math inline">\(\beta_2*genericballotpct\)</span>+
+<span class="math inline">\(\beta_3*lagseatshare\)</span></p>
+<p>I split my dataset into two parts: training (70%) and testing (30%) so I could
+perform out of sample validation on my models.</p>
+</div>
+<div id="results-and-interpretation" class="section level1">
+<h1>Results and Interpretation</h1>
+<pre class="r"><code>stargazer(lm_seats,lm_vote,type=&#39;text&#39;)</code></pre>
+<pre><code>## 
+## ==========================================================
+##                                   Dependent variable:     
+##                               ----------------------------
+##                                   seats      majorvote_pct
+##                                    (1)            (2)     
+## ----------------------------------------------------------
+## Inc_party_pres                  -82.476***     -8.512***  
+##                                  (16.156)       (2.145)   
+##                                                           
+## MidtermYear                      14.309**       2.123**   
+##                                  (5.314)        (0.788)   
+##                                                           
+## approval                        -0.757***      -0.084***  
+##                                  (0.186)        (0.026)   
+##                                                           
+## GDP_growth_pct                   -1.220**       -0.111    
+##                                  (0.514)        (0.071)   
+##                                                           
+## poll_pct                         1.928***      0.292***   
+##                                  (0.475)        (0.065)   
+##                                                           
+## lag_seats                        0.648***                 
+##                                  (0.071)                  
+##                                                           
+## lag_pv                                         0.401***   
+##                                                 (0.101)   
+##                                                           
+## Inc_party_pres:MidtermYear      -27.759***     -4.322***  
+##                                  (7.830)        (1.221)   
+##                                                           
+## Inc_party_pres:approval          1.496***      0.166***   
+##                                  (0.308)        (0.041)   
+##                                                           
+## Inc_party_pres:GDP_growth_pct    2.042***        0.170    
+##                                  (0.723)        (0.102)   
+##                                                           
+## Constant                         32.954*       21.296***  
+##                                  (17.902)       (3.753)   
+##                                                           
+## ----------------------------------------------------------
+## Observations                        51            51      
+## R2                                0.923          0.858    
+## Adjusted R2                       0.906          0.827    
+## Residual Std. Error (df = 41)     11.263         1.570    
+## F Statistic (df = 9; 41)        54.763***      27.584***  
+## ==========================================================
+## Note:                          *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
+<p>As these results show, each variable is significant in predicting a
+party’s seatshare and voteshare at the 5% significance level. There are high Adjusted R-sq values,
+or proportion of the variance explained by the models, sitting at .923 for the seatshare model
+and .827 for the voteshare model.</p>
+<p>To interpret the coefficients, it is helpful to group together all the variables that start with “Inc_party_pres,” or whether the row’s party is the same as the president’s party. While the <span class="math inline">\(\beta_1\)</span> on the “Inc_party_pres” is extremely large, this represents the case where the president has a 0% approval rating because it assumes that this term, Inc_party_<a href="pres:approval" class="uri">pres:approval</a>, is 0. Hence, this term proves useful in building the regression but is challenging to interpret on its own. Instead, I will focus on the interaction variables themselves.</p>
+<p><span class="math inline">\(\gamma_1\)</span>, or Inc_party_<a href="pres:MidtermYear" class="uri">pres:MidtermYear</a>, represents the association
+between the incumbent president’s party’s outcome and the election occurring during a midterm year.During midterm years, the incumbent president’s party is associated with a 28 seatshare loss and a 4.3 percentage point drop in the
+popular vote, holding all the other variables in this regression constant. On the other hand, <span class="math inline">\(\gamma_0\)</span> (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms
+are often “a referendum on the incumbent president,” and thus</p>
+<p>That’s not to say that the incumbent president’s party will only drop during midterm years. As
+the regression shows, there are positive coefficients for <span class="math inline">\(\gamma_1\)</span> and <span class="math inline">\(rho_1\)</span>, which respectively represent the associations between the incumbent president’s party and the president’s approval rating
+and the country’s gdp growth. More precisely, every 1 percentage point increase in a president’s approval
+rating is associated with an increase of 1.5 seats and .166 percentage points in voteshare. Similarly, every 1 percent increase in gdp growth from the past quarter is associated with an increase of 2 seats and .17 percentage points in voteshare. On the other hand, the party opposing the incumbent president
+is negatively associated with the presidential approval rating and the country’s gdp.</p>
+<p>Finally, it is interesting to examine the non-interaction variables: the generic
+ballot polling (<span class="math inline">\(\beta_2\)</span>) and the lag ( <span class="math inline">\(\beta_3\)</span> ), or prior, seatshare and voteshare by party. As expected,
+all the variables are positively and significantly associated with the party’s electoral outcomes.
+For every 1 percentage point increase in the party’s generic ballot polling, the party’s
+increases by 1.92 seats and .292 percentage points in voteshare. I use the lagged
+variables as another form of an intercept that can hold account for where the party
+was prior to the election. I find it more helpful than a simple binary for control of the house.
+Each seat a party currently holds is associated with .65 seats in the upcoming eletion and each
+voteshare percentage point from the prior election is associated with a 0.4 voteshare in the upcoming election.</p>
+</div>
+<div id="model-validation" class="section level1">
+<h1>Model Validation</h1>
+<p>Next, I test how well my model performed for Republicans and Democrats in sample (training dataset) out of sample (testing dataset). I use root mean squared error, or the average error between
+my predictions and the actual result.</p>
+<pre><code>## $rmse_r_st_test
+## [1] 13.09432
+## 
+## $rmse_r_st_train
+## [1] 10.00875
+## 
+## $rmse_d_st_test
+## [1] 12.30286
+## 
+## $rmse_d_st_tr
+## [1] 12.30286</code></pre>
+<pre><code>## $rmse_r_vt_test
+## [1] 1.15401
+## 
+## $rmse_r_vt_train
+## [1] 1.500629
+## 
+## $rmse_d_vt_test
+## [1] 1.407397
+## 
+## $rmse_d_vt_tr
+## [1] 1.407397</code></pre>
+<p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/model%20validation-1.png" width="672" /><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/model%20validation-2.png" width="672" />
+These results first demonstrate that for my seat share model, the model performs
+better for Democrats</p>
+</div>
+<div id="predictions-and-uncertainty" class="section level1">
+<h1>Predictions and Uncertainty</h1>
+<pre class="r"><code># Set training and testing datasets, add in data for 2022
+set.seed(232)
+split1&lt;- sample(c(rep(0, ceiling(0.7 * nrow(all_2))), rep(1, 0.3 * nrow(all_2))))
+train &lt;- all_2[split1 == 0, ]  
+test &lt;- all_2[split1 == 1, ]  %&gt;%
+  add_row(year = 2022, party = &#39;D&#39;,GDP_growth_pct=.6,poll_pct=44.7,approval=42.2,
+          Inc_party_pres=1,Inc_party_house=1,MidtermYear=1,lag_seats=222,lag_pv=51.5)%&gt;%
+  add_row(year = 2022, party = &#39;R&#39;,GDP_growth_pct=.6,poll_pct=45.3,approval=41.7,
+          Inc_party_pres=0,Inc_party_house=0,MidtermYear=1,lag_seats=212,lag_pv=48.5)
+
+test$pred_seats&lt;-predict(lm_seats,test,interval=&#39;prediction&#39;)
+test$pred_vote&lt;-predict(lm_vote,test,interval=&#39;prediction&#39;)
+# test_preds&lt;-cbind(test,pred_seats,pred_vote)
+# tab&lt;-data.frame(cbind(test[test$year==2022&amp;test$party==&#39;D&#39;,c(3,2,22)],
+#   test[test$year==2022&amp;test$party==&#39;R&#39;,c(3,2,23)]))%&gt;%
+#   mutate(pred_vote_D[,&#39;fit&#39;]=100-pred_vote[,&#39;fit&#39;],
+#          pred_vote_D[,&#39;upr&#39;]=100-pred_vote[,&#39;upr&#39;],
+#          pred_st_R=435-pred_seats)
+# tab&lt;-data.frame(rbind(tab[,c(1:3,7)]%&gt;% rename(&#39;pred_vote&#39;=&#39;pred_vote_D&#39;),tab[,c(4:6,8)]%&gt;%
+#                         rename(&#39;pred_seats&#39;=&#39;pred_st_R&#39;,&#39;party&#39;=&#39;party.1&#39;,&#39;year&#39;=&#39;year.1&#39;)))%&gt;%
+#   mutate()
+#   
+# 
+#   mutate(pred_seats=ifelse(party==&#39;R&#39;,))
+
+    
+tab&lt;-data.frame(bind_rows(test[test$year==2022&amp;test$party==&#39;D&#39;,c(3,2,22)],
+                          test[test$year==2022&amp;test$party==&#39;R&#39;,c(3,2,23)]))%&gt;%
+  mutate(pred_seats_fit=ifelse(party==&#39;R&#39;,435-lag(pred_seats[,1]),pred_seats[,1]),
+         pred_seats_lwr=ifelse(party==&#39;R&#39;,435-lag(pred_seats[,3]),pred_seats[,2]),
+         pred_seats_upr=ifelse(party==&#39;R&#39;,435-lag(pred_seats[,2]),pred_seats[,3]),
+         pred_vote_fit=ifelse(party==&#39;D&#39;,100-lead(pred_vote[,1]),pred_vote[,1]),
+         pred_vote_lwr=ifelse(party==&#39;D&#39;,100-lead(pred_vote[,3]),pred_vote[,2]),
+         pred_vote_upr=ifelse(party==&#39;D&#39;,100-lead(pred_vote[,2]),pred_vote[,3]))%&gt;%
+  select(&#39;party&#39;,&#39;year&#39;,pred_seats_fit,pred_seats_lwr,pred_seats_upr,
+         pred_vote_fit,pred_vote_lwr,pred_vote_upr)
+tab</code></pre>
+<pre><code>##   party year pred_seats_fit pred_seats_lwr pred_seats_upr pred_vote_fit
+## 1     D 2022       198.8392       174.3883       223.2900      47.46914
+## 2     R 2022       236.1608       211.7100       260.6117      52.53086
+##   pred_vote_lwr pred_vote_upr
+## 1      44.06289      50.87539
+## 2      49.12461      55.93711</code></pre>
+<pre class="r"><code>ggplot(data=tab,aes(x=party,y=pred_seats_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_seats_upr,ymin=pred_seats_lwr))+labs(title=&#39;Predicted Nationwide Voteshare for 2022&#39;,subtitle=&#39;Error bars represent 95% confidence interval, Dashed line is at 237 seats or split seat share&#39;)+scale_color_manual(values=c(&quot;Blue&quot;,&quot;Red&quot;))+geom_hline(yintercept = 217,linetype=&#39;dashed&#39;)</code></pre>
+<p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/preds-1.png" width="672" /></p>
+<pre class="r"><code>ggplot(data=tab,aes(x=party,y=pred_vote_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_vote_upr,ymin=pred_vote_lwr))+labs(title=&#39;Predicted Nationwide Voteshare for 2022&#39;,subtitle=&#39;Error bars represent 95% confidence interval, Dashed line is at 50% or split voteshare&#39;)+scale_color_manual(values=c(&quot;Blue&quot;,&quot;Red&quot;))+geom_hline(yintercept = 50,linetype=&#39;dashed&#39;)</code></pre>
+<p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/preds-2.png" width="672" /></p>
+<div id="ohio-1st-district" class="section level4">
+<h4>Ohio 1st District</h4>
+</div>
+</div>
+<div id="dataset-and-setup-1" class="section level1">
+<h1>Dataset and Setup</h1>
+</div>
+<div id="model-description-justification-1" class="section level1">
+<h1>Model Description, Justification</h1>
+<p>Used linear outcome, multivariate regression for all 3.</p>
+</div>
+<div id="results-and-interpretation-1" class="section level1">
+<h1>Results and Interpretation</h1>
+<ul>
+<li>Uncertainty</li>
+</ul>
+</div>
+<div id="model-validation-1" class="section level1">
+<h1>Model Validation</h1>
+<ol style="list-style-type: decimal">
+<li>model formula (or procedure for obtaining prediction),</li>
+<li>model description and justification,</li>
+<li>coefficients (if using regression) and/or weights (if using ensemble),</li>
+<li>interpretation of coefficients and/or justification of weights,</li>
+<li>model validation (recommended to include both in-sample and out-of-sample performance unless it is impossible due to the characteristics of model and related data availability),</li>
+<li>uncertainty around prediction (e.g. predictive interval)</li>
+<li>graphic(s) showing your prediction</li>
+</ol>
+</div>
+<div id="national-seat-share" class="section level1">
+<h1>National Seat Share</h1>
+<p>As the model output shows, almost all variables are significant at the 5% level.
+I chose to use multiple interactions to account for the cases where the candidate
+represents the same, or different, party as the sitting president.</p>
+<p>My data is structured in a long format, such that the unit of measurement is by party*year
+Hence, for every year, there are 2 observations separated by party.</p>
+<div id="ohio" class="section level2">
+<h2>Ohio</h2>
+<pre class="r"><code>oh&lt;-read_csv(&quot;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv&quot;)</code></pre>
+<pre><code>## New names:
+## Rows: 16067 Columns: 21
+## ── Column specification
+## ──────────────────────────────────────────────────────── Delimiter: &quot;,&quot; chr
+## (14): office, state, st_fips, district_num, district_id, winner_party, R... dbl
+## (7): ...1, ...2, year, RepVotes, DemVotes, RepVotesMajorPercent, DemVot...
+## ℹ Use `spec()` to retrieve the full column specification for this data. ℹ
+## Specify the column types or set `show_col_types = FALSE` to quiet this message.
+## • `` -&gt; `...1`
+## • `...1` -&gt; `...2`</code></pre>
+<pre class="r"><code>oh&lt;-oh %&gt;% filter(st_cd_fips==3901)%&gt;%
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%&gt;%
+  mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
+
+# Republican rows
+oh_rep&lt;-oh %&gt;% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+# Dem rows
+oh_dem&lt;-oh %&gt;% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+# Bind together
+oh_total&lt;-bind_rows(oh_rep,oh_dem)
+oh_total&lt;-oh_total %&gt;%
+  mutate(party=ifelse(is.na(RepVotesMajorPercent),&#39;D&#39;,&#39;R&#39;),
+    CandidateName=ifelse(party==&#39;R&#39;,RepCandidate,DemCandidate),
+    Status=ifelse(party==&#39;R&#39;,RepStatus,DemStatus),
+    pv2p=ifelse(party==&#39;R&#39;,RepVotesMajorPercent,DemVotesMajorPercent))%&gt;%
+  filter(pv2p!=0)%&gt;%
+  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+         party,CandidateName,Status,pv2p)
+
+
+# Generic polls
+gen_poll_oh&lt;-read_csv(&#39;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv&#39;)</code></pre>
+<pre><code>## Rows: 4219 Columns: 13
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;,&quot;
+## chr (4): pollster, type, poll_date, party
+## dbl (9): Count, sample_size, bmonth, bday, year, emonth, eday, days_until_el...
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<pre class="r"><code>gen_poll_oh&lt;-gen_poll_oh %&gt;% 
+  filter(days_until_election&lt;30)%&gt;%
+  group_by(year,party)%&gt;%
+  summarise(party_support=mean(support))</code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;year&#39;. You can override using the
+## `.groups` argument.</code></pre>
+<pre class="r"><code>#Join datasets together
+oh&lt;-left_join(oh_total,gen_poll_oh,by=c(&#39;year&#39;,&#39;party&#39;))%&gt;%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) %&gt;% 
+mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+oh&lt;-oh %&gt;%
+  group_by(CandidateName)%&gt;%
+  arrange(year)%&gt;%
+  mutate(term=ifelse(Status==&#39;Incumbent&#39;,cumsum(n()),0))%&gt;%
+  ungroup()
+
+oh&lt;- oh %&gt;%
+  group_by(CandidateName)%&gt;%
+  arrange(year)%&gt;%
+ mutate(term = 1:n(),
+        term=term-1)%&gt;%
+  ungroup()
+
+oh&lt;-oh %&gt;%
+  group_by(st_cd_fips,party)%&gt;%
+  arrange(year)%&gt;%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
+         approval_cent=party_support-44.6)%&gt;%
+  ungroup()%&gt;% filter(Uncontested==0)%&gt;%
+  mutate(same_party=ifelse(party==president_party,1,0),
+         party_wins=ifelse(party==winner_party,1,0))</code></pre>
+<pre><code>## # A tibble: 2 × 6
+##    year party  term same_party party_support pred[,&quot;fit&quot;] [,&quot;lwr&quot;] [,&quot;upr&quot;]
+##   &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt;      &lt;dbl&gt;         &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+## 1  2022 R        16          0          45.3         51.6     30.1     73.1
+## 2  2022 D         0          1          44.7         44.0     28.2     59.8</code></pre>
+<p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/model%20Ohio-1.png" width="672" /></p>
+<pre class="r"><code>exp&lt;-read_csv(&#39;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/expert_rating.csv&#39;)%&gt;%
+  filter(state==&#39;Ohio&#39;&amp;district==1)
+oh&lt;-left_join(oh,exp,by=&#39;year&#39;)
+lm_oh&lt;-lm(pv2p~I(avg_rating-4):party,data=dat)
+poll&lt;-read_csv(&#39;/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/dist_polls_2018-2022.csv&#39;)%&gt;%
+  mutate(party=substr(party,1,1))%&gt;%
+  filter(party%in%c(&#39;D&#39;,&#39;R&#39;))%&gt;%
+  filter(st_cd_fips==&#39;3901&#39;)%&gt;%
+  add_row(cycle = 2022, party = &#39;D&#39;,pct=49,fte_grade=&#39;B/C&#39;,end_date=&#39;10/16/22&#39;,
+          election_date=&#39;11/8/22&#39;)%&gt;%
+    add_row(cycle = 2022, party = &#39;D&#39;,pct=49,fte_grade=&#39;B/C&#39;,end_date=&#39;9/21/22&#39;,
+            election_date=&#39;11/8/22&#39;)%&gt;%
+  add_row(cycle = 2022, party = &#39;R&#39;,pct=46,fte_grade=&#39;B/C&#39;,end_date=&#39;10/16/22&#39;,
+          election_date=&#39;11/8/22&#39;)%&gt;%
+    add_row(cycle = 2022, party = &#39;R&#39;,pct=46,fte_grade=&#39;B/C&#39;,end_date=&#39;9/21/22&#39;,
+            election_date=&#39;11/8/22&#39;)
+
+dat_poll&lt;-left_join(poll,dat,by=c(&#39;cycle&#39;=&#39;year&#39;,&#39;party&#39;))%&gt;%
+  mutate(avg_rating=ifelse(cycle==2022,4.44,avg_rating),
+         elec_date=as.Date(parse_date_time(election_date,&quot;mdy&quot;)),
+         end_date=as.Date(parse_date_time(end_date,&quot;mdy&quot;)),
+         day_diff=difftime(elec_date,end_date,units=&#39;days&#39;))
+
+mod_poll_inc &lt;- lm(pv2p ~ pct+(fte_grade)+avg_rating+(day_diff), data = dat_poll)
+dat_poll$pred&lt;-predict(mod_poll_inc,dat_poll,interval=&#39;prediction&#39;)
+oh_22&lt;-tibble(year=c(2022,2022),party=c(&#39;R&#39;,&#39;D&#39;),term=c(16,0),Status=c(&#39;Incumbent&#39;,&#39;Challenger&#39;),prev=c(53.7,46.3),
+              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7),exp_rating=c(4.44,4.44))</code></pre>
+</div>
+</div>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/post/2022-10-23-shocks/" class="left arrow">&#8592;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+        		<footer>
+			
+			<span>
+			&copy; <time datetime="2022-11-06 13:12:20.516985 -0500 EST m=&#43;0.114087918">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			</span>
+		</footer>
+
+    </body>
+</html>

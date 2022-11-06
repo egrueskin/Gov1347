@@ -1,0 +1,402 @@
+---
+title: "Final Prediction"
+author: "R package build"
+date: "2022-11-02"
+output: pdf_document
+summary: Here is my final predicton model, using data available leading up to 11/7 at 4pm EST.
+categories: []
+tags: []
+slug: []
+---
+
+# Overview
+
+Over the course of the semester, I have been building models to forecast the outcomes
+of the 2022 US House Elections. With each week devoted to a different theme that can 
+be considered predictive of an election's outcome, I have had the opportunity 
+to work with a variety of datasets and consider the best context for each variable. 
+I have built 3 models over the semester:
+  1. Nationwide Seat Share
+  2. Nationwide Vote Share
+  3. Vote Share in Ohio's 1st District House Race
+  
+In this post, I will detail the decisions and trade-offs that went into each of the models. 
+My final predictions are that Republicans will gain control over the seat, winning
+20 new seats and taking a lead of 240-198 seats. However, the confidence interval is large and captures
+. Similarly, I predict that Republicans will reach the majority of the nationwide 
+popular vote at 52.7% but have a confidence interval of (49.7,52), suggesting my 
+model is not 95% confident that they will win the majority. Finally, for Ohio's 1st district, I implement two different regression methods. Both forecast that Incumbent Steve Chabot (R) will
+beat challenger Greg Landsman (D) by a small margin of about 1-3 percentage points, but
+the 95% confidence interval again captures the possibility of him losing the seat. 
+
+
+#### Nationwide Models
+
+# Dataset and Setup 
+
+For my nationwide models, I join a number of datasets with information from the 
+1948-2020 elections. My primary dataset is the voting information for each year's election,
+where the unit of analysis is the party*year, including variables like: the party's vote share, seat share, 
+the party of the president after the election, and the incumbent party of the house majority.
+I then built variables for whether or not the party matches the incumbent president's party, whether or not it is 
+a midterm year, the party's seat share and vote share from the previous election.
+
+Next, I merged this with the party's average generic ballot polling in the 52 days prior to the election. In generic ballot polls,
+the surveyor asks the likely voter which party they are planning to support in the upcoming election. These are performed at a nationwide-level
+and provide a pulse on each party's favorableness. I also included economic data into my main dataset, 
+incorporating the gdp growth percentage in the quarter prior to the election. 
+Finally, I included the sitting president's mean approval ratings into my analysis 
+to test whether house candidates are penalized or rewarded for the performance of the president.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse); library(knitr); library(stargazer)
+```
+
+```{r explore,message=FALSE,warning=FALSE,include=FALSE}
+# Read in historical data
+inc<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/inc_pop_vote_df.csv")%>%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) 
+# Read in generic poll data, 52 days before election
+# For some reason, the 2008 data was off so I did that year separately
+gen_poll<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>%
+  filter(days_until_election<52&year!=2008)%>%
+  group_by(year)%>%
+  summarise(D=mean(dem),R=mean(rep))%>%
+  pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct')
+gen_poll_2<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GenericPolls1942_2020.csv")%>%
+  filter(days_until_election<52&year==2008)%>%
+  group_by(year)%>%
+  summarise(D=mean(rep),R=mean(dem))%>%
+  pivot_longer(cols=c('D','R'),names_to='party',values_to='poll_pct')
+gen_poll<-bind_rows(gen_poll,gen_poll_2)
+
+# Read in gdp data
+gdp<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/GDP_quarterly.csv")%>%
+  mutate(Eyr=ifelse(year%%2,0,1)) %>%
+  filter(Eyr==1&quarter_yr==3)%>%
+  dplyr::select(year,GDP_growth_pct)
+library(stringr)
+
+# Read in presidential approval data 
+pres<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/pres_approval_gallup_1941-2022.csv")%>%
+  group_by(year)%>%
+  summarise(approval=mean(approve))
+
+# Join datasets together
+inc_gen<-inner_join(inc,gen_poll,by=c('year','party'))
+all<-inner_join(inc_gen,gdp,by='year')
+all<-inner_join(all,pres,by='year')
+
+#Clean data to have lagged data
+all_2<-all %>% 
+  arrange(party,year)%>%
+  dplyr::mutate(Pres_inc_party=case_when(year==1948~'NA',TRUE~dplyr::lag(president_party,  n=1)))%>%
+  dplyr::mutate(Inc_party_pres=ifelse(Pres_inc_party==party,1,0),
+         Inc_party_house=ifelse(H_incumbent_party==party,1,0),
+         lag_seats=lag(seats),
+         lag_pv=lag(majorvote_pct))%>% filter(year!=1948)
+```
+
+
+
+
+
+# Model Description, Justification
+
+To build my forecasting models, I used a linear model to predict each party's 
+voteshare and seatshare, using all 72 observations (36 years*2 parties) 
+and the following variables:
+1. Interaction Term for whether it is a Midterm Year interacted with a binary for whether
+the party represented that of the incumbent president (SamePartyPres). Coefficient:$\kappa_{im}$
+2. Interaction term for the presidential approval rating interacted with SamePartyPres. Coefficient: $\gamma_i$
+3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres. Coefficient: $\rho_i$
+4. The party's generic ballot percentage. Coefficient: $\beta_1$
+5. The party's voteshare or seatshare from the prior election. Coefficient: $\beta_2$
+
+Here are the exact formulas written out: 
+
+$DemVoteShare$=$\beta_0$+$\beta_{1}SamePartyPres_i$+$\kappa_{im}SamePartyPres_i*MidtermYear_m$+$\gamma_iSamePartyPres_i*PresidentialApproval$+$\rho_iSamePartyPres_i*GDPgrowthpct$+$\beta_2*genericballotpct$+
+$\beta_3*lagvoteshare$
+$RepSeatShare$=$\beta_0$+$\beta_{1}SamePartyPres_i$+$\kappa_{im}SamePartyPres_i*MidtermYear_m$+$\gamma_iSamePartyPres_i*PresidentialApproval$+$\rho_iSamePartyPres_i*GDPgrowthpct$+$\beta_2*genericballotpct$+
+$\beta_3*lagseatshare$
+
+I split my dataset into two parts: training (70%) and testing (30%) so I could 
+perform out of sample validation on my models. 
+
+```{r model build,message=FALSE,warning=FALSE,echo=FALSE}
+# Model
+
+# Set training and testing datasets, add in data for 2022
+set.seed(232)
+split1<- sample(c(rep(0, ceiling(0.7 * nrow(all_2))), rep(1, 0.3 * nrow(all_2))))
+train <- all_2[split1 == 0, ]  
+test <- all_2[split1 == 1, ]  %>%
+  add_row(year = 2022, party = 'D',GDP_growth_pct=.6,poll_pct=44.7,approval=42.2,
+          Inc_party_pres=1,Inc_party_house=1,MidtermYear=1,lag_seats=222,lag_pv=51.5)%>%
+  add_row(year = 2022, party = 'R',GDP_growth_pct=.6,poll_pct=45.3,approval=41.7,
+          Inc_party_pres=0,Inc_party_house=0,MidtermYear=1,lag_seats=212,lag_pv=48.5)
+
+lm_seats<-lm(seats~Inc_party_pres*(MidtermYear+approval+GDP_growth_pct)+poll_pct+lag_seats,data=train)
+lm_vote<-lm(majorvote_pct~Inc_party_pres*(MidtermYear+approval+GDP_growth_pct)+poll_pct+lag_pv,data=train)
+
+```
+
+# Results and Interpretation
+```{r model output,warning=FALSE}
+stargazer(lm_seats,lm_vote,type='text')
+```
+
+As these results show, each variable is significant in predicting a 
+party's  seatshare and voteshare at the 5% significance level. There are high Adjusted R-sq values,
+or proportion of the variance explained by the models, sitting at .923 for the seatshare model
+and .827 for the voteshare model.
+
+To interpret the coefficients, it is helpful to group together all  the variables that start with "Inc_party_pres," or whether the row's party is the same as the president's party. While the $\beta_1$ on the "Inc_party_pres" is extremely large, this represents the case where the president has a 0% approval rating because it assumes that this term, Inc_party_pres:approval, is 0. Hence, this term proves useful in building the regression but is challenging to interpret on its own. Instead, I will focus on the interaction variables themselves. 
+
+$\gamma_1$, or Inc_party_pres:MidtermYear, represents the association
+between the incumbent president's party's outcome and the election occurring during a midterm year.During midterm years, the incumbent president's party is associated with a 28 seatshare loss and a 4.3 percentage point drop in the 
+popular vote, holding all the other variables in this regression constant. On the other hand, $\gamma_0$ (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms 
+are often "a referendum on the incumbent president," and thus 
+
+That's not to say that the incumbent president's party will only drop during midterm years. As
+the regression shows, there are positive coefficients for $\gamma_1$ and $rho_1$, which respectively represent the associations between the incumbent president's party and the president's approval rating
+and the country's gdp growth. More precisely, every 1 percentage point increase in a president's approval
+rating is associated with an increase of 1.5 seats and .166 percentage points in voteshare. Similarly, every 1 percent increase in gdp growth from the past quarter is associated with an increase of 2 seats and .17 percentage points in voteshare. On the other hand, the party opposing the incumbent president
+is negatively associated with the presidential approval rating and the country's gdp. 
+
+Finally, it is interesting to examine the non-interaction variables: the generic 
+ballot polling ($\beta_2$) and the lag ( $\beta_3$ ), or prior, seatshare and voteshare by party. As expected,
+all the variables are positively and significantly associated with the party's electoral outcomes.
+For every 1 percentage point increase in the party's generic ballot polling, the party's
+ increases by 1.92 seats and .292 percentage points in voteshare. I use the lagged
+ variables as another form of an intercept that can hold account for where the party
+ was prior to the election. I find it more helpful than a simple binary for control of the house.
+ Each seat a party currently holds is associated with .65 seats in the upcoming eletion and each
+ voteshare percentage point from the prior election is associated with a 0.4 voteshare in the upcoming election. 
+
+
+# Model Validation
+
+Next, I test how well my model performed for Republicans and Democrats in sample (training dataset) out of sample (testing dataset). I use root mean squared error, or the average error between
+my predictions and the actual result. 
+
+```{r model validation, message=FALSE,warning=FALSE,echo=FALSE}
+test$pred_seats<-predict(lm_seats,test)
+test$pred_vote<-predict(lm_vote,test)
+train$pred_seats<-predict(lm_seats,train)
+train$pred_vote<-predict(lm_vote,train)
+rmse_r_st_test<-sqrt(mean(as.numeric(unlist((test[test$party=='R'&test$year!=2022,'pred_seats']-test[test$party=='R'&test$year!=2022,'seats'])))^2))
+rmse_r_st_train<-sqrt(mean(as.numeric(unlist((train[train$party=='R'&train$year!=2022,'pred_seats']-train[train$party=='R'&train$year!=2022,'seats'])))^2))
+rmse_d_st_test<-sqrt(mean(as.numeric(unlist((test[test$party=='D'&test$year!=2022,'pred_seats']-test[test$party=='D'&test$year!=2022,'seats'])))^2))
+rmse_d_st_tr<-sqrt(mean(as.numeric(unlist((train[train$party=='D'&train$year!=2022,'pred_seats']-train[train$party=='D'&train$year!=2022,'seats'])))^2))
+list('rmse_r_st_test'=rmse_r_st_test,'rmse_r_st_train'=rmse_r_st_train,
+     'rmse_d_st_test'=rmse_d_st_test,'rmse_d_st_tr'=rmse_d_st_test)
+rmse_r_vt_test<-sqrt(mean(as.numeric(unlist((test[test$party=='R'&test$year!=2022,'pred_vote']-test[test$party=='R'&test$year!=2022,'majorvote_pct'])))^2))
+rmse_r_vt_train<-sqrt(mean(as.numeric(unlist((train[train$party=='R'&train$year!=2022,'pred_vote']-train[train$party=='R'&train$year!=2022,'majorvote_pct'])))^2))
+rmse_d_vt_test<-sqrt(mean(as.numeric(unlist((test[test$party=='D'&test$year!=2022,'pred_vote']-test[test$party=='D'&test$year!=2022,'majorvote_pct'])))^2))
+rmse_d_vt_train<-sqrt(mean(as.numeric(unlist((train[train$party=='D'&train$year!=2022,'pred_vote']-train[train$party=='D'&train$year!=2022,'majorvote_pct'])))^2))
+list('rmse_r_vt_test'=rmse_r_vt_test,'rmse_r_vt_train'=rmse_r_vt_train,
+     'rmse_d_vt_test'=rmse_d_vt_test,'rmse_d_vt_tr'=rmse_d_vt_test)
+
+ggplot(test,aes(x=seats,pred_seats,label=year,col=party))+geom_point()+geom_smooth(method=lm,se=FALSE)+labs(title='Predicted Seats vs. Actual Seats Using Testing Data ')+scale_color_manual(values=c("Blue","Red"))+facet_wrap(~party)
+ggplot(test,aes(x=majorvote_pct,pred_vote,label=year,col=party))+facet_wrap(~party)+geom_point()+geom_smooth(method=lm,se=FALSE)+geom_label()+labs(title='Predicted Voteshare vs. Actual Voteshare on Test Data')+scale_color_manual(values=c("Blue","Red"))
+
+```
+These results first demonstrate that for my seat share model, the model performs
+better for Democrats 
+
+# Predictions and Uncertainty
+```{r preds}
+# Set training and testing datasets, add in data for 2022
+set.seed(232)
+split1<- sample(c(rep(0, ceiling(0.7 * nrow(all_2))), rep(1, 0.3 * nrow(all_2))))
+train <- all_2[split1 == 0, ]  
+test <- all_2[split1 == 1, ]  %>%
+  add_row(year = 2022, party = 'D',GDP_growth_pct=.6,poll_pct=44.7,approval=42.2,
+          Inc_party_pres=1,Inc_party_house=1,MidtermYear=1,lag_seats=222,lag_pv=51.5)%>%
+  add_row(year = 2022, party = 'R',GDP_growth_pct=.6,poll_pct=45.3,approval=41.7,
+          Inc_party_pres=0,Inc_party_house=0,MidtermYear=1,lag_seats=212,lag_pv=48.5)
+
+test$pred_seats<-predict(lm_seats,test,interval='prediction')
+test$pred_vote<-predict(lm_vote,test,interval='prediction')
+# test_preds<-cbind(test,pred_seats,pred_vote)
+# tab<-data.frame(cbind(test[test$year==2022&test$party=='D',c(3,2,22)],
+#   test[test$year==2022&test$party=='R',c(3,2,23)]))%>%
+#   mutate(pred_vote_D[,'fit']=100-pred_vote[,'fit'],
+#          pred_vote_D[,'upr']=100-pred_vote[,'upr'],
+#          pred_st_R=435-pred_seats)
+# tab<-data.frame(rbind(tab[,c(1:3,7)]%>% rename('pred_vote'='pred_vote_D'),tab[,c(4:6,8)]%>%
+#                         rename('pred_seats'='pred_st_R','party'='party.1','year'='year.1')))%>%
+#   mutate()
+#   
+# 
+#   mutate(pred_seats=ifelse(party=='R',))
+
+    
+tab<-data.frame(bind_rows(test[test$year==2022&test$party=='D',c(3,2,22)],
+                          test[test$year==2022&test$party=='R',c(3,2,23)]))%>%
+  mutate(pred_seats_fit=ifelse(party=='R',435-lag(pred_seats[,1]),pred_seats[,1]),
+         pred_seats_lwr=ifelse(party=='R',435-lag(pred_seats[,3]),pred_seats[,2]),
+         pred_seats_upr=ifelse(party=='R',435-lag(pred_seats[,2]),pred_seats[,3]),
+         pred_vote_fit=ifelse(party=='D',100-lead(pred_vote[,1]),pred_vote[,1]),
+         pred_vote_lwr=ifelse(party=='D',100-lead(pred_vote[,3]),pred_vote[,2]),
+         pred_vote_upr=ifelse(party=='D',100-lead(pred_vote[,2]),pred_vote[,3]))%>%
+  select('party','year',pred_seats_fit,pred_seats_lwr,pred_seats_upr,
+         pred_vote_fit,pred_vote_lwr,pred_vote_upr)
+tab
+ggplot(data=tab,aes(x=party,y=pred_seats_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_seats_upr,ymin=pred_seats_lwr))+labs(title='Predicted Nationwide Voteshare for 2022',subtitle='Error bars represent 95% confidence interval, Dashed line is at 237 seats or split seat share')+scale_color_manual(values=c("Blue","Red"))+geom_hline(yintercept = 217,linetype='dashed')
+ggplot(data=tab,aes(x=party,y=pred_vote_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_vote_upr,ymin=pred_vote_lwr))+labs(title='Predicted Nationwide Voteshare for 2022',subtitle='Error bars represent 95% confidence interval, Dashed line is at 50% or split voteshare')+scale_color_manual(values=c("Blue","Red"))+geom_hline(yintercept = 50,linetype='dashed')
+
+```
+
+
+#### Ohio 1st District 
+
+# Dataset and Setup 
+
+
+
+
+
+# Model Description, Justification
+
+Used linear outcome, multivariate regression for all 3. 
+
+# Results and Interpretation
+
+
+* Uncertainty
+
+
+# Model Validation
+
+
+(1) model formula (or procedure for obtaining prediction), 
+(2) model description and justification, 
+(3) coefficients (if using regression) and/or weights (if using ensemble), 
+(4) interpretation of coefficients and/or justification of weights, 
+(5) model validation (recommended to include both in-sample and out-of-sample performance unless it is impossible due to the characteristics of model and related data availability), 
+(6) uncertainty around prediction (e.g. predictive interval)
+(7) graphic(s) showing your prediction
+
+# National Seat Share 
+
+
+
+As the model output shows, almost all variables are significant at the 5% level. 
+I chose to use multiple interactions to account for the cases where the candidate
+represents the same, or different, party as the sitting president. 
+
+My data is structured in a long format, such that the unit of measurement is by party*year
+Hence, for every year, there are 2 observations separated by party.
+
+
+## Ohio
+
+```{r model}
+oh<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
+oh<-oh %>% filter(st_cd_fips==3901)%>%
+  select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>%
+  mutate(Uncontested=ifelse(DemVotesMajorPercent==0|RepVotesMajorPercent==0,1,0))
+
+# Republican rows
+oh_rep<-oh %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,RepCandidate, RepStatus,RepVotesMajorPercent)
+# Dem rows
+oh_dem<-oh %>% select(st_cd_fips, state,year, winner_party,president_party,Uncontested,DemCandidate, DemStatus,DemVotesMajorPercent)
+# Bind together
+oh_total<-bind_rows(oh_rep,oh_dem)
+oh_total<-oh_total %>%
+  mutate(party=ifelse(is.na(RepVotesMajorPercent),'D','R'),
+    CandidateName=ifelse(party=='R',RepCandidate,DemCandidate),
+    Status=ifelse(party=='R',RepStatus,DemStatus),
+    pv2p=ifelse(party=='R',RepVotesMajorPercent,DemVotesMajorPercent))%>%
+  filter(pv2p!=0)%>%
+  select(state,st_cd_fips, year,party,winner_party,president_party,Uncontested,
+         party,CandidateName,Status,pv2p)
+
+
+# Generic polls
+gen_poll_oh<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_nation/polls_df.csv')
+gen_poll_oh<-gen_poll_oh %>% 
+  filter(days_until_election<30)%>%
+  group_by(year,party)%>%
+  summarise(party_support=mean(support))
+
+#Join datasets together
+oh<-left_join(oh_total,gen_poll_oh,by=c('year','party'))%>%
+  mutate(MidtermYear=ifelse(year%%4,1,0)) %>% 
+mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+oh<-oh %>%
+  group_by(CandidateName)%>%
+  arrange(year)%>%
+  mutate(term=ifelse(Status=='Incumbent',cumsum(n()),0))%>%
+  ungroup()
+
+oh<- oh %>%
+  group_by(CandidateName)%>%
+  arrange(year)%>%
+ mutate(term = 1:n(),
+        term=term-1)%>%
+  ungroup()
+
+oh<-oh %>%
+  group_by(st_cd_fips,party)%>%
+  arrange(year)%>%
+  mutate(prev=lag(pv2p),Unc_prev=lag(Uncontested),
+         approval_cent=party_support-44.6)%>%
+  ungroup()%>% filter(Uncontested==0)%>%
+  mutate(same_party=ifelse(party==president_party,1,0),
+         party_wins=ifelse(party==winner_party,1,0))
+
+```
+
+```{r model Ohio,message=FALSE,warning=FALSE,echo=FALSE}
+split1<- sample(c(rep(0, ceiling(0.7 * nrow(oh))), rep(1, 0.3 * nrow(oh))))
+train_oh <- oh[split1 == 0, ]  
+test_oh <- oh[split1 == 1, ] 
+lm_oh<-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=train_oh)
+lm_oh<-lm(pv2p~Status+I(term^2)+prev+same_party:MidtermYear,data=train_oh)
+oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
+              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7))
+test_oh$pred<-predict(lm_oh,test_oh)
+
+oh_22$pred<-predict(lm_oh,oh_22,interval='prediction')
+oh_22[,c(1:3,7:9)]
+ggplot(data=test_oh,aes(y=pv2p,x=pred,col=party))+geom_point()
+# ggplot(data=dat,aes(y=pv2p,x=prev,col=party))+geom_point()+facet_wrap(~party)
+# rmse_r<-sqrt(mean(as.numeric(unlist((test[test$party=='D','pred']-test[test$party=='D','pv2p'])))^2))
+```
+
+```{r,eval=FALSE}
+exp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/expert_rating.csv')%>%
+  filter(state=='Ohio'&district==1)
+oh<-left_join(oh,exp,by='year')
+lm_oh<-lm(pv2p~I(avg_rating-4):party,data=dat)
+poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/dist_polls_2018-2022.csv')%>%
+  mutate(party=substr(party,1,1))%>%
+  filter(party%in%c('D','R'))%>%
+  filter(st_cd_fips=='3901')%>%
+  add_row(cycle = 2022, party = 'D',pct=49,fte_grade='B/C',end_date='10/16/22',
+          election_date='11/8/22')%>%
+    add_row(cycle = 2022, party = 'D',pct=49,fte_grade='B/C',end_date='9/21/22',
+            election_date='11/8/22')%>%
+  add_row(cycle = 2022, party = 'R',pct=46,fte_grade='B/C',end_date='10/16/22',
+          election_date='11/8/22')%>%
+    add_row(cycle = 2022, party = 'R',pct=46,fte_grade='B/C',end_date='9/21/22',
+            election_date='11/8/22')
+
+dat_poll<-left_join(poll,dat,by=c('cycle'='year','party'))%>%
+  mutate(avg_rating=ifelse(cycle==2022,4.44,avg_rating),
+         elec_date=as.Date(parse_date_time(election_date,"mdy")),
+         end_date=as.Date(parse_date_time(end_date,"mdy")),
+         day_diff=difftime(elec_date,end_date,units='days'))
+
+mod_poll_inc <- lm(pv2p ~ pct+(fte_grade)+avg_rating+(day_diff), data = dat_poll)
+dat_poll$pred<-predict(mod_poll_inc,dat_poll,interval='prediction')
+oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
+              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7),exp_rating=c(4.44,4.44))
+```
+
