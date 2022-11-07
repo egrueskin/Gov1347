@@ -3,9 +3,9 @@ title: "Final Prediction"
 author: "R package build"
 date: "2022-11-02"
 output:
-  pdf_document: default
   html_document:
     df_print: paged
+  pdf_document: default
 summary: Here is my final predicton model, using data available leading up to 11/7
   at 4pm EST.
 categories: []
@@ -140,9 +140,9 @@ set.seed(232)
 split1<- sample(c(rep(0, ceiling(0.7 * nrow(all_2))), rep(1, 0.3 * nrow(all_2))))
 train <- all_2[split1 == 0, ]  
 test <- all_2[split1 == 1, ]  %>%
-  add_row(year = 2022, party = 'D',GDP_growth_pct=.6,poll_pct=44.7,approval=42.2,
+  add_row(year = 2022, party = 'D',GDP_growth_pct=.6,poll_pct=45.4,approval=42.1,
           Inc_party_pres=1,Inc_party_house=1,MidtermYear=1,lag_seats=222,lag_pv=51.5)%>%
-  add_row(year = 2022, party = 'R',GDP_growth_pct=.6,poll_pct=45.3,approval=41.7,
+  add_row(year = 2022, party = 'R',GDP_growth_pct=.6,poll_pct=46.5,approval=42.1,
           Inc_party_pres=0,Inc_party_house=0,MidtermYear=1,lag_seats=212,lag_pv=48.5)
 
 lm_seats<-lm(seats~Inc_party_pres*(MidtermYear+approval+GDP_growth_pct)+poll_pct+lag_seats,data=train)
@@ -162,19 +162,19 @@ and .827 for the voteshare model.
 
 To interpret the coefficients, it is helpful to group together all  the variables that start with "Inc_party_pres," or whether the row's party is the same as the president's party. While the $\beta_1$ on the "Inc_party_pres" is extremely large, this represents the case where the president has a 0% approval rating because it assumes that this term, Inc_party_pres:approval, is 0. Hence, this term proves useful in building the regression but is challenging to interpret on its own. Instead, I will focus on the interaction variables themselves. 
 
-$\gamma_1$, or Inc_party_pres:MidtermYear, represents the association
+Gamma(1), or Inc_party_pres:MidtermYear, represents the association
 between the incumbent president's party's outcome and the election occurring during a midterm year.During midterm years, the incumbent president's party is associated with a 28 seatshare loss and a 4.3 percentage point drop in the 
-popular vote, holding all the other variables in this regression constant. On the other hand, $\gamma_0$ (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms 
+popular vote, holding all the other variables in this regression constant. On the other hand, Gamma(0) (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms 
 are often "a referendum on the incumbent president," and thus 
 
 That's not to say that the incumbent president's party will only drop during midterm years. As
-the regression shows, there are positive coefficients for $\gamma_1$ and $rho_1$, which respectively represent the associations between the incumbent president's party and the president's approval rating
+the regression shows, there are positive coefficients for Gamma(1) and Rho(1), which respectively represent the associations between the incumbent president's party and the president's approval rating
 and the country's gdp growth. More precisely, every 1 percentage point increase in a president's approval
 rating is associated with an increase of 1.5 seats and .166 percentage points in voteshare. Similarly, every 1 percent increase in gdp growth from the past quarter is associated with an increase of 2 seats and .17 percentage points in voteshare. On the other hand, the party opposing the incumbent president
 is negatively associated with the presidential approval rating and the country's gdp. 
 
 Finally, it is interesting to examine the non-interaction variables: the generic 
-ballot polling ($\beta_2$) and the lag ( $\beta_3$ ), or prior, seatshare and voteshare by party. As expected,
+ballot polling Beta(2) and the lag Beta(3), or prior, seatshare and voteshare by party. As expected,
 all the variables are positively and significantly associated with the party's electoral outcomes.
 For every 1 percentage point increase in the party's generic ballot polling, the party's
  increases by 1.92 seats and .292 percentage points in voteshare. I use the lagged
