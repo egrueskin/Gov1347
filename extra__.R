@@ -13,11 +13,16 @@ mutate(pred_seats=ifelse(party=='R',))
                           mutate(party_2='R',pred_seats_R=435-pred_seats,pred_vote_R=100-pred_vote)
                         tab
                         
+\beta_1
                         
-                        
+                        $$VoteShare=\beta_0+\beta_{1}Incumbent_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+\beta_2*prevvoteshare
                         $$
-                          VoteShare=\beta_0+\beta_{1}SamePartyPres_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+\\
-                        \gamma_iSamePartyPres_i*PresidentialApproval+\rho_iSamePartyPres_i*GDPgrowthpct+\\\beta_2*genericballotpct+
+                          $$VoteShare=\beta_0+\kappa_{im}SamePartyPres_i*MidtermYear_m+\rho_{i}Party_p*CookRating
+                        $$
+                          $$VoteShare=\beta_0+\beta_1*pollingpercent$$
+                        
+$$VoteShare=\beta_0+\beta_{1}SamePartyPres_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+
+                          \gamma_iSamePartyPres_i*PresidentialApproval+\rho_iSamePartyPres_i*GDPgrowthpct+\\\beta_2*genericballotpct+
                           \beta_3*lagvoteshare
                         $$
                           
