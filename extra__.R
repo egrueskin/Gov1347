@@ -22,6 +22,19 @@ mutate(pred_seats=ifelse(party=='R',))
                         $$
                           
                           
+                          
+                          as_tibble(oh_22[,c(13,9,117:119)])%>%
+                          arrange(day_diff)
+                        kable()
+                        pred_poll_inc <- predict(mod_poll_inc, oh_22, 
+                                                 interval = "prediction", level=0.95)
+                        pred_poll_inc
+                        ,42,117,119)]
+oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
+              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7),exp_rating=c(4.44,4.44))
+oh_22$pred<-predict(mod_poll_inc,oh_22,interval='prediction')
+                          
+                          
                           $$
                           SeatShare=\beta_0+\beta_{1}SamePartyPres_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+\\
                         \gamma_iSamePartyPres_i*PresidentialApproval+\rho_iSamePartyPres_i*GDPgrowthpct+\\\beta_2*genericballotpct+

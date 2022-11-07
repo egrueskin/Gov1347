@@ -113,10 +113,14 @@ the party represented that of the incumbent president (SamePartyPres). Coefficie
 4. The party’s generic ballot percentage. Coefficient: <span class="math inline">\(\beta_1\)</span>
 5. The party’s voteshare or seatshare from the prior election. Coefficient: <span class="math inline">\(\beta_2\)</span></p>
 <p>Here are the exact formulas written out:</p>
-<p><span class="math inline">\(DemVoteShare\)</span>=<span class="math inline">\(\beta_0\)</span>+<span class="math inline">\(\beta_{1}SamePartyPres_i\)</span>+<span class="math inline">\(\kappa_{im}SamePartyPres_i*MidtermYear_m\)</span>+<span class="math inline">\(\gamma_iSamePartyPres_i*PresidentialApproval\)</span>+<span class="math inline">\(\rho_iSamePartyPres_i*GDPgrowthpct\)</span>+<span class="math inline">\(\beta_2*genericballotpct\)</span>+
-<span class="math inline">\(\beta_3*lagvoteshare\)</span>
-<span class="math inline">\(RepSeatShare\)</span>=<span class="math inline">\(\beta_0\)</span>+<span class="math inline">\(\beta_{1}SamePartyPres_i\)</span>+<span class="math inline">\(\kappa_{im}SamePartyPres_i*MidtermYear_m\)</span>+<span class="math inline">\(\gamma_iSamePartyPres_i*PresidentialApproval\)</span>+<span class="math inline">\(\rho_iSamePartyPres_i*GDPgrowthpct\)</span>+<span class="math inline">\(\beta_2*genericballotpct\)</span>+
-<span class="math inline">\(\beta_3*lagseatshare\)</span></p>
+<p><span class="math display">\[
+DemVoteShare=\beta_0+\beta_{1}SamePartyPres_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+\gamma_iSamePartyPres_i*PresidentialApproval+\rho_iSamePartyPres_i*GDPgrowthpct+\beta_2*genericballotpct+
+\beta_3*lagvoteshare
+\]</span>
+<span class="math display">\[
+RepSeatShare=\beta_0+\beta_{1}SamePartyPres_i+\kappa_{im}SamePartyPres_i*MidtermYear_m+\gamma_iSamePartyPres_i*PresidentialApproval+\rho_iSamePartyPres_i*GDPgrowthpct+\beta_2*genericballotpct+
+\beta_3*lagseatshare
+\]</span></p>
 <p>I split my dataset into two parts: training (70%) and testing (30%) so I could
 perform out of sample validation on my models.</p>
 </div>
@@ -274,6 +278,7 @@ tab</code></pre>
 <p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/preds-1.png" width="672" /></p>
 <pre class="r"><code>ggplot(data=tab,aes(x=party,y=pred_vote_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_vote_upr,ymin=pred_vote_lwr))+labs(title=&#39;Predicted Nationwide Voteshare for 2022&#39;,subtitle=&#39;Error bars represent 95% confidence interval, Dashed line is at 50% or split voteshare&#39;)+scale_color_manual(values=c(&quot;Blue&quot;,&quot;Red&quot;))+geom_hline(yintercept = 50,linetype=&#39;dashed&#39;)</code></pre>
 <p><img src="http://example.org/post/2022-11-02-final-prediction/index_files/figure-html/preds-2.png" width="672" /></p>
+<p>My model predicts that Democrats</p>
 <div id="ohio-1st-district" class="section level4">
 <h4>Ohio 1st District</h4>
 </div>
@@ -436,7 +441,7 @@ oh_22&lt;-tibble(year=c(2022,2022),party=c(&#39;R&#39;,&#39;D&#39;),term=c(16,0)
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-11-06 13:12:20.516985 -0500 EST m=&#43;0.114087918">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-11-07 11:57:39.707283 -0500 EST m=&#43;0.169440293">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 

@@ -3,6 +3,7 @@ title: "Final Prediction"
 author: "R package build"
 date: "2022-11-02"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
 summary: Here is my final predicton model, using data available leading up to 11/7
@@ -54,7 +55,7 @@ to test whether house candidates are penalized or rewarded for the performance o
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse); library(knitr); library(stargazer);library(tinytex)
+library(tidyverse); library(knitr); library(stargazer);library(tinytex);library(lubridate)
 ```
 
 ```{r explore,message=FALSE,warning=FALSE,include=FALSE}
@@ -251,7 +252,7 @@ tab<-data.frame(bind_rows(test[test$year==2022&test$party=='D',c(3,2,22)],
          pred_vote_upr=ifelse(party=='D',100-lead(pred_vote[,2]),pred_vote[,3]))%>%
   select('party','year',pred_seats_fit,pred_seats_lwr,pred_seats_upr,
          pred_vote_fit,pred_vote_lwr,pred_vote_upr)
-tab
+tab%>% kable()
 ggplot(data=tab,aes(x=party,y=pred_seats_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_seats_upr,ymin=pred_seats_lwr))+labs(title='Predicted Nationwide Voteshare for 2022',subtitle='Error bars represent 95% confidence interval, Dashed line is at 237 seats or split seat share')+scale_color_manual(values=c("Blue","Red"))+geom_hline(yintercept = 217,linetype='dashed')
 ggplot(data=tab,aes(x=party,y=pred_vote_fit,col=party))+geom_point()+geom_errorbar(aes(ymax=pred_vote_upr,ymin=pred_vote_lwr))+labs(title='Predicted Nationwide Voteshare for 2022',subtitle='Error bars represent 95% confidence interval, Dashed line is at 50% or split voteshare')+scale_color_manual(values=c("Blue","Red"))+geom_hline(yintercept = 50,linetype='dashed')
 
@@ -302,7 +303,12 @@ Hence, for every year, there are 2 observations separated by party.
 
 ## Ohio
 
-```{r model}
+Next, I zoom into my specific district: Ohio-01. This district is viewed as a toss-up according to Cook,
+with 538 predicting it'll go Republican. THe sitting incumbent, Steve Chabot, is a Republican
+who has served 15 terms (only lost once since 1990). Democrat and City Council member  Greg Landsman
+is the challenger. 
+
+```{r ohio setup, include=FALSE}
 oh<-read_csv("/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/incumb_dist_1948-2020.csv")
 oh<-oh %>% filter(st_cd_fips==3901)%>%
   select(state,st_cd_fips, year, DemCandidate,RepCandidate,winner_party, RepStatus,DemStatus,RepVotesMajorPercent,DemVotesMajorPercent,president_party)%>%
@@ -358,52 +364,89 @@ oh<-oh %>%
   mutate(same_party=ifelse(party==president_party,1,0),
          party_wins=ifelse(party==winner_party,1,0))
 
+#Cook data
+cook<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/cook.csv')%>% 
+  filter(state=='OH' & district=='01')
+
+oh_cook<-left_join(oh,cook,by=c('year'))
 ```
 
 ```{r model Ohio,message=FALSE,warning=FALSE,echo=FALSE}
 split1<- sample(c(rep(0, ceiling(0.7 * nrow(oh))), rep(1, 0.3 * nrow(oh))))
 train_oh <- oh[split1 == 0, ]  
 test_oh <- oh[split1 == 1, ] 
-lm_oh<-lm(pv2p~log(term+1)+prev+same_party*MidtermYear,data=train_oh)
-lm_oh<-lm(pv2p~Status+I(term^2)+prev+same_party:MidtermYear,data=train_oh)
-oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
+lm_oh_1<-lm(pv2p~Status +prev+same_party:MidtermYear,data=train_oh)
+lm_oh_exp<-lm(pv2p~same_party:MidtermYear+code:party,data=oh_cook)
+mean(abs(lm_oh_1$residuals))
+mean(abs(lm_oh_exp$residuals))
+oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),code=c(-1,-1),
               MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7))
-test_oh$pred<-predict(lm_oh,test_oh)
-
-oh_22$pred<-predict(lm_oh,oh_22,interval='prediction')
-oh_22[,c(1:3,7:9)]
-ggplot(data=test_oh,aes(y=pv2p,x=pred,col=party))+geom_point()
-# ggplot(data=dat,aes(y=pv2p,x=prev,col=party))+geom_point()+facet_wrap(~party)
-# rmse_r<-sqrt(mean(as.numeric(unlist((test[test$party=='D','pred']-test[test$party=='D','pv2p'])))^2))
+oh_22$pred_1<-predict(lm_oh_1,oh_22,interval='prediction') 
+oh_22$pred_exp<-predict(lm_oh_exp,oh_22,interval='prediction')
+test_oh$pred<-predict(lm_oh_1,test_oh)
 ```
 
-```{r,eval=FALSE}
-exp<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/expert_rating.csv')%>%
-  filter(state=='Ohio'&district==1)
-oh<-left_join(oh,exp,by='year')
-lm_oh<-lm(pv2p~I(avg_rating-4):party,data=dat)
+```{r Ohio model output, message=FALSE,warning=FALSE}
+stargazer(lm_oh_1,lm_oh_exp,type='text')
+
+
+
+ggplot(data=test_oh,aes(y=pv2p,x=pred,col=party,label=year))+geom_point()+geom_label()+
+  labs(title='Predicted Voteshare vs. Actual Voteshare on Test Data for Fundamental Model')+
+  scale_color_manual(values=c("Blue","Red"))+geom_abline(slope=1)
+# ggplot(data=dat,aes(y=pv2p,x=prev,col=party))+geom_point()+facet_wrap(~party)
+# rmse_r<-sqrt(mean(as.numeric(unlist((test[test$party=='D','pred']-test[test$party=='D','pv2p'])))^2))
+oh_22[1,c(1:3,8:10)]
+
+```
+Because the datasets with expert predictions and polls are so small (12 and 30 observations,respectively), I 
+incorporated all the points into my model and did not leave out a testing dataset. 
+I only have 
+
+# Polling model
+
+```{r poll models,echo=FALSE,message=FALSE,warnings=FALSE}
+
 poll<-read_csv('/Users/elliegrueskin/Documents/Fall 2022/Gov 1347/Gov1347/data/by_district/dist_polls_2018-2022.csv')%>%
   mutate(party=substr(party,1,1))%>%
   filter(party%in%c('D','R'))%>%
-  filter(st_cd_fips=='3901')%>%
+  filter(st_cd_fips=='3901')
+
+dat_poll<-left_join(poll,oh,by=c('cycle'='year','party'))%>%
+  #add new polls
   add_row(cycle = 2022, party = 'D',pct=49,fte_grade='B/C',end_date='10/16/22',
           election_date='11/8/22')%>%
     add_row(cycle = 2022, party = 'D',pct=49,fte_grade='B/C',end_date='9/21/22',
             election_date='11/8/22')%>%
   add_row(cycle = 2022, party = 'R',pct=46,fte_grade='B/C',end_date='10/16/22',
-          election_date='11/8/22')%>%
+          election_date='11/8/22',Status='Incumbent')%>%
     add_row(cycle = 2022, party = 'R',pct=46,fte_grade='B/C',end_date='9/21/22',
-            election_date='11/8/22')
-
-dat_poll<-left_join(poll,dat,by=c('cycle'='year','party'))%>%
+            election_date='11/8/22',Status='Incumbent')  %>%
   mutate(avg_rating=ifelse(cycle==2022,4.44,avg_rating),
          elec_date=as.Date(parse_date_time(election_date,"mdy")),
          end_date=as.Date(parse_date_time(end_date,"mdy")),
-         day_diff=difftime(elec_date,end_date,units='days'))
+         day_diff=difftime(elec_date,end_date,units='days'),
+         # create weights for poll grade
+         weight = case_when(str_detect(fte_grade, "A/B") ~ 25,
+str_detect(fte_grade, "B/C") ~ 15,
+str_detect(fte_grade, "C") ~ 10,
+          str_detect(fte_grade, "B") ~ 20,
+          str_detect(fte_grade, "A") ~ 30))
+mod_poll <- lm(pv2p ~ pct, data = dat_poll,weights=c(weight*I(1/as.numeric(day_diff))))
+oh_22_r<-dat_poll %>% filter(cycle==2022&party=='R')
+oh_22_r$pred<-predict(mod_poll,oh_22_r,interval='prediction')
+mean(abs(mod_poll$residuals))
 
-mod_poll_inc <- lm(pv2p ~ pct+(fte_grade)+avg_rating+(day_diff), data = dat_poll)
-dat_poll$pred<-predict(mod_poll_inc,dat_poll,interval='prediction')
-oh_22<-tibble(year=c(2022,2022),party=c('R','D'),term=c(16,0),Status=c('Incumbent','Challenger'),prev=c(53.7,46.3),
-              MidtermYear=c(1,1),same_party=c(0,1),party_support=c(45.3,44.7),exp_rating=c(4.44,4.44))
 ```
+
+no sample size weighting because all at 500
+```{r ohio 2,message=FALSE,warning=FALSE}
+stargazer(mod_poll,type='text')
+
+as_tibble(oh_22_r[,c('end_date','party','day_diff','fte_grade','pred')])%>%
+  arrange(day_diff)
+
+
+```
+
 
