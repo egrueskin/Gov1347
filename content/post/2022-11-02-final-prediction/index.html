@@ -20,16 +20,16 @@ slug: []
 <p>Over the course of the semester, I have been building models to forecast the outcomes
 of the 2022 US House Elections. With each week devoted to a different theme that can
 be considered predictive of an election’s outcome, I have had the opportunity
-to work with a variety of datasets and consider the best context for each variable.
-In this post, I detail my three models:
-1. Nationwide Seat Share
-2. Nationwide Vote Share
-3. Vote Share in Ohio’s 1st District House Race</p>
-<p>Specifically, I discuss the decisions and trade-offs that went into each of the models.
-My final predictions are that Republicans will gain control over the seat, winning
-23 new seats and taking a lead of 236-199 seats. However, the confidence interval is large and captures a small probability of the Democrats maintaining control, or at least a smaller loss margin. Similarly, I predict that Republicans will reach the majority of the nationwide
-popular vote at 52.5% but have a confidence interval of (49.7,52), suggesting my
-model is not 95% confident that they will win the majority. Finally, for Ohio’s 1st district, I implement three different regression methods. Averaged together, they forecast that Incumbent Steve Chabot (R) will beat challenger Greg Landsman (D), but
+to work with a variety of datasets and consider the best context for each variable.<br />
+In this post, I detail my three models:<br />
+1. Nationwide Seat Share<br />
+2. Nationwide 2-party Popular Vote Share<br />
+3. Vote Share in Ohio’s 1st District House Race<br />
+</p>
+<p>My final predictions are that Republicans will gain control over the seat, winning
+23 new seats and taking a lead of 236-199 seats. However, the 95% confidence interval is large and captures a small probability of the Democrats maintaining control, or at least losing by a smaller margin. Similarly, I predict that Republicans will reach the majority of the nationwide
+popular vote at 52.5%. But, this point estimate has a 95% confidence interval of (49.7,52), suggesting that my
+model is not 95% confident that they will win the majority voteshare. Finally, for Ohio’s 1st district, I implement three different regression methods. Averaged together, they forecast that Incumbent Steve Chabot (R) will beat challenger Greg Landsman (D), but
 the 95% confidence interval again captures the possibility of Chabot losing the seat.</p>
 </div>
 <div id="nationwide-models" class="section level1">
@@ -42,7 +42,7 @@ where the unit of analysis is the party*year, including variables like: the part
 the party of the president after the election, and the incumbent party of the house majority.
 I then built variables for whether or not the party matches the incumbent president’s party, whether or not it is
 a midterm year, the party’s seat share and vote share from the previous election.</p>
-<p>Next, I merged this with the party’s average generic ballot polling in the 52 days prior to the election. In generic ballot polls,
+<p>Next, I merged this with each party’s average generic ballot polling in the 52 days prior to the election. In generic ballot polls,
 the surveyor asks the likely voter which party they are planning to support in the upcoming election. These are performed at a nationwide-level
 and provide a pulse on each party’s favorableness. I also included economic data into my main dataset,
 incorporating the gdp growth percentage in the quarter prior to the election.
@@ -57,14 +57,15 @@ gain/lose a few seats.</p>
 <div id="model-description-justification" class="section level2">
 <h2>Model Description, Justification</h2>
 <p>To build my forecasting models, I used a linear model to predict each party’s
-voteshare and seatshare, using all 72 observations (36 years,2 parties)
+seatshare and voteshare on all 72 observations (36 years,2 parties)
 and the following variables:<br />
 1. Interaction term for whether it is a Midterm Year interacted with a binary for whether the party represented that of the incumbent president (SamePartyPres). Coefficient:kappa(im)<br />
 2. Interaction term for the presidential approval rating interacted with SamePartyPres. Coefficient: gamma(i)<br />
-3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres. Coefficient: rho(i) I chose GDP growth percentage as opposed to RDI or inflation because GDP is highly linked to Inflation and can stabilize better across shocks.<br />
+3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres. Coefficient: rho(i).<br />
+I chose GDP growth percentage as opposed to RDI or inflation because GDP is highly linked to Inflation and can stabilize better across shocks.<br />
 4. The party’s generic ballot percentage. Coefficient: beta(1)<br />
 5. The party’s seatshare or voteshare from the prior election. Coefficient: beta(2)
-Omissions: Ad data because the most important advertisements are run leading up to the elections,
+Omissions: Advertising data because the most important advertisements are run leading up to the elections,
 so it would be challenging to incorporate into my model. Similarly, I did not
 include demographic, voting administration, turnout data because I wasn’t sure if it
 would be particularly helpful at the nationwide level</p>
@@ -140,12 +141,12 @@ perform out of sample validation on my models.</p>
 <p>As these results show, each variable is significant in predicting a
 party’s seatshare and voteshare at the 5% significance level. There are high Adjusted R-sq values,
 or proportion of the variance explained by the models, sitting at .923 for the seatshare model
-and .827 for the voteshare model.</p>
-<p>To interpret the coefficients, it is helpful to group together all the variables that start with “Inc_party_pres,” or whether the row’s party is the same as the president’s party. While the (beta(1)) on the “Inc_party_pres” is extremely large, this represents the case where the president has a 0% approval rating because it assumes that this term, Inc_party_<a href="pres:approval" class="uri">pres:approval</a>, is 0. Hence, this term proves useful in building the regression but is challenging to interpret on its own. Instead, I will focus on the interaction variables themselves.</p>
+and .8258 for the voteshare model.</p>
+<p>To interpret the coefficients, it is helpful to group together all the variables that start with “Inc_party_pres,” or whether the row’s party is the same as the president’s party. While the beta(1) on the “Inc_party_pres” is extremely large, this represents the case where the president has a 0% approval rating because it assumes that this term, Inc_party_<a href="pres:approval" class="uri">pres:approval</a>, is 0. Hence, this term proves useful in building the regression but is challenging to interpret on its own. Instead, I will focus on the interaction variables themselves.</p>
 <p>Gamma(1), or Inc_party_<a href="pres:MidtermYear" class="uri">pres:MidtermYear</a>, represents the association
 between the incumbent president’s party’s outcome and the election occurring during a midterm year.During midterm years, the incumbent president’s party is associated with a 28 seatshare loss and a 4.3 percentage point drop in the
-popular vote, holding all the other variables in this regression constant. On the other hand, Gamma(0) (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms
-are often “a referendum on the incumbent president,” and thus</p>
+popular vote, holding all the other variables in this regression constant. On the other hand, Gamma(0) (MidtermYear) represents the association between the non-incumbent party and the Midterm Year and is positive. During midterm years, the non-incumbent party is associated with 14 more seats and a 2.2 percentage point increase in voteshare. This follows the historical patterns, which show that midterms are often “a referendum on the incumbent president’s party,” and that the reps may be penalized
+for being in the same party as the sitting presidnet.</p>
 <p>That’s not to say that the incumbent president’s party will only drop during midterm years. As
 the regression shows, there are positive coefficients for Gamma(1) and Rho(1), which respectively represent the associations between the incumbent president’s party and the president’s approval rating
 and the country’s gdp growth. More precisely, every 1 percentage point increase in a president’s approval
@@ -155,9 +156,9 @@ is negatively associated with the presidential approval rating and the country�
 ballot polling Beta(2) and the lag Beta(3), or prior, seatshare and voteshare by party. As expected,
 all the variables are positively and significantly associated with the party’s electoral outcomes.
 For every 1 percentage point increase in the party’s generic ballot polling, the party’s
-increases by 1.92 seats and .292 percentage points in voteshare. I use the lagged
+increases by 1.93 seats and .292 percentage points in voteshare. I use the lagged
 variables as another form of an intercept that can hold account for where the party
-was prior to the election. I find it more helpful than a simple binary for control of the house.
+was prior to the election. I believe that it encapsulates more than a simple binary for control of the house.
 Each seat a party currently holds is associated with .65 seats in the upcoming eletion and each
 voteshare percentage point from the prior election is associated with a 0.4 voteshare in the upcoming election.</p>
 </div>
@@ -215,7 +216,7 @@ for the Republicans.</p>
 <h2>Predictions and Uncertainty</h2>
 <p>One limitation of the linear model is that the sum of the Democratic and Republican
 seat/voteshare may not sum up nicely to 100 or 435. As a work around, I predict
-the point estimate for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. An important note is that this type of model is that I doesn’t include the likely possibility of a seat being held
+the point estimate for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. An important note is that this model doesn’t include the likely possibility of a seat being held
 by a member of one of the non-major parties. Similarly, I predict the voteshare for Republicans
 and then compute 100-PredictionVoteShareRepublicans to get the predicted Democratic voteshare.</p>
 <p>For each prediction, I draw a 95% confidence interval to be 95% certain that
@@ -288,14 +289,13 @@ so I am not as confident in the exact margins.</p>
 </div>
 <div id="ohio-1st-district" class="section level1">
 <h1>Ohio 1st District</h1>
-<p>Next, I zoom into my specific district: Ohio-01. This district is viewed as a toss-up according to Cook,
+<p>Next, I zoom into my specific district: Ohio-01. This district is viewed as a toss-up according to Cook Political Report,
 with 538 predicting it’ll go Republican. The sitting incumbent, Steve Chabot, is a Republican
-who has served 15 terms (only lost once since 1995). Democrat and City Council member Greg Landsman
-is the challenger, and has recently been polling at about even with Chabot. My entire dataset
-for this part includes all election data going back to 1948 for Ohio-01.</p>
-<p>In former election cycles, this district has been considered one of the most competitive.
-In 2020, Cook rated it as a “Tossup R” district and Chabot beat the captured 53.7% of the vote.
-Howver, the recent redistricting cycle has likely brought in more democrats to the district, making it a more looked-after district. Cook still believes it’s a Tossup R again, signifying
+who has served 15 terms and only lost once since 1995. Democrat and City Council member Greg Landsman
+is the challenger, and has recently been polling at about even with Chabot. My dataset
+for this portion includes all election data going back to 1948 for Ohio-01.</p>
+<p>In 2020, Cook rated Ohio-01 as a “Tossup R” district and Chabot beat the captured 53.7% of the vote.
+However, the recent redistricting cycle has likely brought in more democrats to the district, making it a more competitive district. Cook still believes it’s a Tossup R again, signifying
 that they anticipate it will be a close race but that Chabot will win again. FiveThirtyEight
 similarly predicts that Chabot will win and capture 52.6% of the popular vote. However,
 their overlapping confidence intervals show that they see a path in which Landsman wins.By simulation, they anticipate that Chabot will win 82% of the time and Landsman the other 18%.</p>
@@ -316,7 +316,9 @@ Cook creates a prediction for each district’s partisan leaning, which “measu
 (#fig:cook_oh)Equation for Model with Cook Ratings
 </p>
 </div>
-The final regression uses just polling data from the last three cycles (2018-2022)
+The final regression uses just polling data from the last three cycles (2018-2022).
+In this model, I weight by the polling grade from FiveThirtyEight and the inverse amount of days until election (1/days). I chose not to use a sample size weighting because all the polls had a sample of
+500.
 <div class="figure" style="text-align: center">
 <img src="images/poll_oh.png" alt="Equation for Polling Model" width="100%" />
 <p class="caption">
@@ -330,7 +332,7 @@ in-sample and out-of sample errors. The in-sample rmse is 5.6 percentage points 
 <p>With my model incorporating Cook ratings, I only had their ratings going
 back to 2008, so my dataset was very small. In order to avoid overfitting, I included
 all the data for my Cook-based model. The in-sample rmse was 1.74 percentage points.</p>
-<p>Here is the regression output :</p>
+<p>Here is the regression output:</p>
 <pre><code>## 
 ## ===================================================================
 ##                                    Dependent variable:             
@@ -366,18 +368,16 @@ all the data for my Cook-based model. The in-sample rmse was 1.74 percentage poi
 ## Note:                                   *p&lt;0.1; **p&lt;0.05; ***p&lt;0.01</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/Ohio%20model%20output-1.png" width="672" />
 As the first regression shows, incumbents perform significanty better in Ohio-01,
-and for every 1 percentage point increase in the party’s previous voteshare, they gain about .5 percentage points. The second regression reports a very high Adjusted R-sq at .88, but
+and for every 1 percentage point increase in the party’s previous voteshare, they gain about .2 percentage points. The second regression reports a very high Adjusted R-sq at .88, but
 there are only 12 observations so I’m a bit cautious. As expected, Democrats are significantly
 better off when the Cook rating is above 0 and vise-versa for Republicans.</p>
 </div>
 <div id="polling-model" class="section level2">
 <h2>Polling model</h2>
-<p>Similar to my Cook-based model, I only had polling info going back to 2008, so my dataset was very small. In order to avoid overfitting, I included
-all the data for my polling-based model. In this model, I weight by the polling grade and
-the inverse amount of days until election (1/days).</p>
-<p>I chose not to use a sample size weighting because all the polls had a sample of
-500. The regression below demonstrates that in this small sample, there is a very
-high association between a party’s polling percentage and their voteshare.</p>
+<p>Similar to my Cook-based model, I only had polling info going back to 2008, so my dataset was very small. In order to avoid overfitting, I included all the data points for my polling-based model.</p>
+<p>The regression below demonstrates that in this small sample, there is a very
+strong, positive association between a party’s polling percentage and their voteshare. The
+in-sample rmse is 2.29 percentage points.</p>
 <pre><code>## 
 ## ===============================================
 ##                         Dependent variable:    
@@ -404,13 +404,19 @@ high association between a party’s polling percentage and their voteshare.</p>
 ## 1 2022-10-16 R        46  23 days B/C                    50.5     44.1     56.9
 ## 2 2022-09-21 R        46  48 days B/C                    50.5     44.1     56.9
 ## 3 2022-05-15 R        47 177 days B/C                    51.3     44.9     57.7</code></pre>
-<p>In my 2022 predictions, Chabot’s expected voteshare has gone down by about .8 percentage points
+<p>In my 2022 predictions shown above, Chabot’s expected voteshare has gone down by about .8 percentage points
 as the polls tighten. I am not extremely confident in this model because the dataset is so
-limited. So, I will average the predictions for Republicans across all three models with the latter two being weighted twice as heavily because they can better account for redistricting. In my fundamental
-model, I predict that Chabot will get 57.9% of the vote while I predict 52.9% and 51.3% in
-my cook and poll-based models, respectively. Averaging across these three with weightings, I get
+limited. So, I will average the predictions for Republicans across all three models with the latter two being weighted twice as heavily because they can better account for redistricting.</p>
+<p>In my fundamental model, I predict that Chabot will get 57.9% of the vote while I predict 52.9% and 51.3% in
+my Cook and poll-based models, respectively. Averaging across these three with weightings, I get
 that Chabot will get 53.2% of the popular vote while Landsman will get 46.6% of the popular vote.
 Similar to earlier results, the 95% confidence intervals are extremely large, so I
-am not very confident in these results and could easily see Landsman capturing the seat.</p>
+am not very confident in these results and can imagine a pathway where Landsman captures the seat.</p>
 </div>
+</div>
+<div id="references" class="section level1">
+<h1>References:</h1>
+<p><a href="https://projects.fivethirtyeight.com/2022-election-forecast/house/ohio/1/" class="uri">https://projects.fivethirtyeight.com/2022-election-forecast/house/ohio/1/</a></p>
+<p>James Campbell. Forecasting the 2018 US Midterm Elections. PS: Political Science &amp; Politics, 51(S1), 2018. URL.</p>
+<p>Olle Folke and James M. Snyder. Gubernatorial Midterm Slumps:. American Journal of Political Science, 56(4):931–948, October 2012. ISSN 00925853. URL.</p>
 </div>
