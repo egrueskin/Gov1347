@@ -75,12 +75,12 @@
 <div id="models" class="section level2">
 <h2>Models</h2>
 <p>In both nationwide models, I used a fundamental-based approach with strong penalties for the incumbent party. My dataset’s unit of analysis was race*year, such that for each year, there were individual rows for each party.
-To build my forecasting models, I used a linear model to predict each party’s seatshare and voteshare on all 72 observations (36 years,2 parties) and the following variables:
-1. Interaction term for whether it is a Midterm Year interacted with a binary for whether the party represented that of the incumbent president (SamePartyPres). Coefficient:kappa(im)
-2. Interaction term for the presidential approval rating interacted with SamePartyPres. Coefficient: gamma(i)
-3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres.
-4. The party’s generic ballot percentage.
-5. The party’s seatshare or voteshare from the prior election. Coefficient: beta(2) Omissions:</p>
+To build my forecasting models, I used a linear model to predict each party’s seatshare and voteshare on all 72 observations (36 years,2 parties) and the following variables:<br />
+1. Interaction term for whether it is a Midterm Year interacted with a binary for whether the party represented that of the incumbent president (SamePartyPres)<br />
+2. Interaction term for the presidential approval rating interacted with SamePartyPres<br />
+3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres.<br />
+4. The party’s generic ballot percentage.<br />
+5. The party’s seatshare or voteshare from the prior election.</p>
 <p>One limitation of the linear model is that the sum of the Democratic and Republican seat/voteshare may not sum up nicely to 100 or 435. As a work around, I predict the point estimate and 95% prediction interval for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. Similarly, I predict the voteshare for Republicans and then compute 100-PredictionVoteShareRepublicans to get the predicted Democratic voteshare.</p>
 <p>For my Ohio-1st district model, I ran three different models: one that used fundamental data using similar variables to the nationwide models, one that used fundamental data and Cook Partisan Voter Index information, and one with recent polling data.</p>
 </div>
@@ -128,6 +128,13 @@ provide reasoning as to why my voteshare model outperformed by seatshare model.<
 <p>As I mentioned in my quantitative tests, I would have experimented with turnout and further redistricting data to see if that would better predict nationwide and district-level data.</p>
 <p>Additionally, I would be interested in doing a district-by-district model. For this class, I stuck with a nationwide-based approach because I wasn’t confident in redistricting measures by district. However, I think to do a thorough seatshare model, it is best to model it at the individual seat level. I think that this will be much more feasible in the future years because the districts will be the same as their past iterations, so previous voteshare will be more predictive.</p>
 </div>
+<div id="conclusion" class="section level1">
+<h1>Conclusion</h1>
+<p>Overall, I am very grateful to have had the opportunity to model the 2022 midterm elections
+and learn more about political and data sciences through the project. I think my model
+demonstrated both the potential and limitations of using fundamental-based data, and
+I look forward to incorporating these lessons into future modeling endeavors.</p>
+</div>
 
 
 		
@@ -144,7 +151,7 @@ provide reasoning as to why my voteshare model outperformed by seatshare model.<
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-11-23 23:51:26.495538 -0500 EST m=&#43;0.214568501">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-11-23 23:57:05.509386 -0500 EST m=&#43;0.232654251">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
