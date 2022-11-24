@@ -68,9 +68,9 @@
 <h1>1. Recap</h1>
 <div id="predictions" class="section level2">
 <h2>Predictions</h2>
-<p>In my nationwide two-party voteshare model, I forecasted that Republicans would receive 52.5% of the vote and Democrats would receive 47.5% of the vote. My 95% prediction interval, which accounts for simulations of 100 times, stretched about 3.4 percentage points in either direction. This signifies that in 95% of the simulations, Democrats would get anywhere from 47.4 to 50.8% of the national vote.</p>
-<p>Similarly, I predicted that Republicans would obtain 236 seats and Democrats would obtain 199 seats. My prediction interval was once again very large, spanning about 24 seats in either direction. Hence, my 95% prediction interval forecasted that Democrats would receive anywhere from 211 to 260 seats. This interval has very large practical meaning because had the Republicans received 211 seats, the election would have been a “red wave” while if the Republicans had received under 217 seats, the Democrats would keep control of the house.</p>
-<p>Finally, for Ohio’s 1st district forecasted that Incumbent Steve Chabot (R) will beat challenger Greg Landsman (D) with 53.2% of the popular vote. However, the 95% prediction interval was very wide (between 40-60% for both candidates), so I was not as confident in my point estimate.</p>
+<p>In my nationwide two-party voteshare model, I forecasted that Republicans would receive 52.5% of the vote and Democrats would receive 47.5% of the vote. My 95% prediction interval, which accounts for simulations of 100 trials, stretched about 3.4 percentage points in either direction. This signifies that in 95% of the simulations, Democrats would get anywhere from 47.4 to 50.8% of the national vote.</p>
+<p>Similarly, I predicted that Republicans would obtain 236 seats and Democrats would obtain 199 seats. My prediction interval was once again very large, spanning about 24 seats in either direction. This interval has very large practical meaning because had the Republicans received 211 seats, the election would have been a “red wave” while if the Republicans had received under 217 seats, the Democrats would keep control of the house.</p>
+<p>Finally, for Ohio’s 1st district, I forecasted that Incumbent Steve Chabot (R) would beat challenger Greg Landsman (D) with 53.2% of the popular vote. However, the 95% prediction interval was very wide (between 40-60% for both candidates), so I was not as confident in my point estimate.</p>
 </div>
 <div id="models" class="section level2">
 <h2>Models</h2>
@@ -81,8 +81,8 @@ To build my forecasting models, I used a linear model to predict each party’s 
 3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres.
 4. The party’s generic ballot percentage.
 5. The party’s seatshare or voteshare from the prior election. Coefficient: beta(2) Omissions:</p>
-<p>One limitation of the linear model is that the sum of the Democratic and Republican seat/voteshare may not sum up nicely to 100 or 435. As a work around, I predict the point estimate and 95% prediction interval for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. Similarly, I predict the voteshare for Republicans and then compute 100-PredictionVoteShareRepublicans to get the predicted Democratic voteshare.
-For my Ohio-1st district model, I ran three different models: one that used fundamental data like the nationwide models, one that used fundamental data and Cook Partisan Voter Index information, and one with recent polling data.</p>
+<p>One limitation of the linear model is that the sum of the Democratic and Republican seat/voteshare may not sum up nicely to 100 or 435. As a work around, I predict the point estimate and 95% prediction interval for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. Similarly, I predict the voteshare for Republicans and then compute 100-PredictionVoteShareRepublicans to get the predicted Democratic voteshare.</p>
+<p>For my Ohio-1st district model, I ran three different models: one that used fundamental data using similar variables to the nationwide models, one that used fundamental data and Cook Partisan Voter Index information, and one with recent polling data.</p>
 </div>
 </div>
 <div id="accuracy" class="section level1">
@@ -96,39 +96,37 @@ For my Ohio-1st district model, I ran three different models: one that used fund
 (#fig:seat_reg)Seat Share Equation
 </p>
 </div>
-<p>With 5 races still to be called, the Cook Political Report has the nationwide voteshare at 47.6% Democrat, 50.9% Republican, and 1.3% other. Given that I was calculating voteshare from a two-party perspective, I will restructure their percentages to be out of the total two-party voteshare, such that Democratic voteshare is 48.3% (47.6/98.5) and Republican voteshare is 51.7%. Hence, my model was very accurate with only a difference of .8 percentage points. While this difference is practically significant in the context of an election, it is still a small error given the complexity of the problem. And, it performed better than it did on average in my testing dataset, where there was a 1.3 percentage point average error.</p>
-<p>On the other hand, my seatshare model did not perform as well. Using forecasted counts, I get that Democrats will have 213 seats and Republicans will have 222 seats. While this is an imperfect final count, it closely follows many pundit predictions. The difference between my point estimates and the actual result was about 14 seats, which is larger than I would have expected or liked.</p>
-<p>For Ohio’s 1st-district, my point estimate interval was off by 5.9 percentage points, where the Democrat Landsman received about the voteshare I expected for Incumbent Chabot and vise-versas. My individual regression prediction intervals were substantially large that I was not confident about Chabot winning by 6 percentage points; however, I did not expect Landsman to win by over 5 percentage points.</p>
+<p>With 2 races still to be called, the Cook Political Report has the nationwide voteshare at 47.6% Democrat, 50.9% Republican, and 1.3% other. Given that I was calculating voteshare from a two-party perspective, I will restructure their percentages to be out of the total two-party voteshare, such that Democratic voteshare is 48.3% (47.6/98.5) and Republican voteshare is 51.7%. Hence, my model was very accurate with only a difference of .8 percentage points. While this difference is practically significant in the context of an election, it is still a small error given the complexity of the problem. And, it performed better than it did on average in my testing dataset, where there was a 1.3 percentage point average error.</p>
+<p>On the other hand, my seatshare model did not perform as well. Using forecasted counts, I get that Democrats will have 213 seats and Republicans will have 222 seats. While this is an imperfect final count, it closely follows many pundit predictions. The difference between my point estimates and the actual result was about 14 seats, which is larger than I would have expected (testing dataset had an average of 11 seat error) or liked.</p>
+<p>For Ohio’s 1st-district, my point estimate interval was off by 5.9 percentage points, where the Democrat Landsman received about the voteshare I expected for Incumbent Chabot and vise-versa. My individual regression prediction intervals were substantially large that I was not confident about Chabot winning by 6 percentage points; however, I did not expect Landsman to win by over 5 percentage points.</p>
 </div>
 </div>
 <div id="hypotheses" class="section level1">
 <h1>3. Hypotheses</h1>
 <ol style="list-style-type: lower-alpha">
-<li>Turnout: For all my models, I did not include turnout forecasts or historical data. In this election, youth turnout was incredibly high, helping many Democrats win competitive races.</li>
+<li>Turnout: For all my models, I did not include turnout forecasts or historical data. In this election, youth turnout was incredibly high, helping many Democrats win competitive races. Had I accounted for youth turnout, my models might have been more accurate</li>
 <li>Redistricting: In 2021, many states drew new electoral maps that affected the radius of congressional districts. Specifically, Ohio-01 was redistricted to include more parts of Cincinnati, which have historically voted more left than Ohio’s 1st district. My model included the Cook PVI to try and account for this, but they still thought it was a tossup Republican.</li>
 </ol>
 </div>
 <div id="quantitative-tests" class="section level1">
 <h1>4. Quantitative Tests</h1>
 <ol style="list-style-type: lower-alpha">
-<li>To test whether turnout would have helped my nationwide models, I could include youth polling turnout figures into my model and see if they would have helped with prediction error.</li>
-<li>To test the effect of redistricting at the Ohio-1st level, I would have considered adding other ratings into my rating-based model. Then, I could test whether an averaged rating system helped better forecast the changes to Ohio’s 1st electoral map.</li>
+<li><p>To test whether turnout would have helped my nationwide models, I could include youth polling and/or turnout figures into my model and see if they would have helped with prediction error. I was hesitant to use this because it was harder data to capture over time, but it would be fruitful to explore.</p></li>
+<li><p>To test the effect of redistricting at the Ohio-1st level, I would have considered adding other ratings into my rating-based model. Then, I could test whether an averaged rating system helped better forecast the changes to Ohio’s 1st electoral map.</p></li>
 </ol>
+<p>It is challenging to test the effect of redistricting at a nationwide level quantitatively, so
+I instead look at a more exploratory approach. I plot the vote curves, or the party’s seat share vs vote share, across years to see if the ratios were unusual this year for Democrats and Republicans.</p>
+<p><img src="http://example.org/post/2022-11-23-post-election-reflection/index_files/figure-html/plot-1.png" width="672" /></p>
+<p>Any year above the diagonal line means that the party had a better seat share than the voteshare
+would’ve predicted if there was a perfect relationship between the two and vise-versa. Unlike the pattern
+over the last decade where Republicans’ seatshare outperformed their voteshare, it appears
+that Democrats slightly outperformed their voteshare this year. Hence, the newer electoral maps may also
+provide reasoning as to why my voteshare model outperformed by seatshare model.</p>
 </div>
 <div id="updates-to-model-in-future" class="section level1">
 <h1>5. Updates to model in future</h1>
 <p>As I mentioned in my quantitative tests, I would have experimented with turnout and further redistricting data to see if that would better predict nationwide and district-level data.</p>
 <p>Additionally, I would be interested in doing a district-by-district model. For this class, I stuck with a nationwide-based approach because I wasn’t confident in redistricting measures by district. However, I think to do a thorough seatshare model, it is best to model it at the individual seat level. I think that this will be much more feasible in the future years because the districts will be the same as their past iterations, so previous voteshare will be more predictive.</p>
-<p>As a decriptive measure to test whether redistricting might have had an effect,
-I plot the vote curves (seat share vs vote share) across years to see if
-this year appeared to have a different ratio for Democrats and Republicans.</p>
-<pre class="r"><code>all_2 %&gt;% ggplot(aes(x=majorvote_pct,y=seats,label=year))+geom_point()+geom_label()+facet_wrap(~party)+geom_abline(slope=8.75,intercept=-221)+labs(title=&#39;Seat Share Vs. Vote Share by Party, Year&#39;,subtitle=&#39;Diagonal line represents perfect relationship between two&#39;)</code></pre>
-<p><img src="http://example.org/post/2022-11-23-post-election-reflection/index_files/figure-html/plot-1.png" width="672" /></p>
-<p>Any year above the diagonal line means that the party had a better seat share than the voteshare
-would’ve predicted if there was a perfect relationship between the two and vise-versa. Unlike the pattern
-over the last decade where Republicans’ seatshare outperformed their voteshare, it appears
-that Democrats slightly outperformed their voteshare this year. Hence, this may also
-provide reasoning as to why my voteshare model outperformed by seatshare model.</p>
 </div>
 
 
@@ -146,7 +144,7 @@ provide reasoning as to why my voteshare model outperformed by seatshare model.<
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2022-11-23 22:53:49.796175 -0500 EST m=&#43;0.218365667">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2022-11-23 23:51:26.495538 -0500 EST m=&#43;0.214568501">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
