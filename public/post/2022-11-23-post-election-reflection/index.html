@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+		
+		
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<title>Post Election Reflection &middot; My New Hugo Site</title>
+
+		
+		<link rel="stylesheet" href="/css/style.css">
+		<link rel="stylesheet" href="/css/fonts.css">
+		
+		<link rel="icon" href="/favicon.ico"/>
+		<link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16.png">
+		<link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
+
+		
+		<link href="" rel="alternate" type="application/rss+xml" title="My New Hugo Site" />
+
+		<script src="/js/darkmode.js"></script>
+	</head>
+
+    <body>
+        		<nav class="nav">
+			<div class="nav-container">
+				<a href="/">
+					
+						<h2 class="nav-title">My New Hugo Site</h2>
+					
+				</a>
+				<ul>
+    
+    
+</ul>
+			</div>
+		</nav>
+
+        <div id="darkModeToggle" onclick="toggleDarkMode()">
+  &#9680; 
+</div>
+
+        
+
+<main>
+	
+
+
+        <div class="post">
+		<div class="post-info">
+    <span>Written by</span>
+        R package build
+        <br>
+        <span>on&nbsp;</span><time datetime="2022-11-23 00:00:00 &#43;0000 UTC">November 23, 2022</time>
+</div>
+
+		<h1 class="post-title">Post Election Reflection</h1>
+<div class="post-line"></div>
+
+		
+
+		
+
+
+<div id="recap" class="section level1">
+<h1>1. Recap</h1>
+<div id="predictions" class="section level2">
+<h2>Predictions</h2>
+<p>In my nationwide two-party voteshare model, I forecasted that Republicans would receive 52.5% of the vote and Democrats would receive 47.5% of the vote. My 95% prediction interval, which accounts for simulations of 100 times, stretched about 3.4 percentage points in either direction. This signifies that in 95% of the simulations, Democrats would get anywhere from 47.4 to 50.8% of the national vote.</p>
+<p>Similarly, I predicted that Republicans would obtain 236 seats and Democrats would obtain 199 seats. My prediction interval was once again very large, spanning about 24 seats in either direction. Hence, my 95% prediction interval forecasted that Democrats would receive anywhere from 211 to 260 seats. This interval has very large practical meaning because had the Republicans received 211 seats, the election would have been a “red wave” while if the Republicans had received under 217 seats, the Democrats would keep control of the house.</p>
+<p>Finally, for Ohio’s 1st district, I implement three different regression methods. Averaged together, they forecast that Incumbent Steve Chabot (R) will beat challenger Greg Landsman (D) with 53.2% of the popular vote, but the 95% prediction interval again captures the possibility of Chabot losing the seat.</p>
+</div>
+<div id="models" class="section level2">
+<h2>Models</h2>
+<p>In both nationwide models, I used a fundamental-based approach with strong penalties for the incumbent party. My dataset’s unit of analysis was race*year, such that for each year, there were individual rows for each party.
+To build my forecasting models, I used a linear model to predict each party’s seatshare and voteshare on all 72 observations (36 years,2 parties) and the following variables:
+1. Interaction term for whether it is a Midterm Year interacted with a binary for whether the party represented that of the incumbent president (SamePartyPres). Coefficient:kappa(im)
+2. Interaction term for the presidential approval rating interacted with SamePartyPres. Coefficient: gamma(i)
+3. Interaction Term for the GDP growth percentage in the last quarter interacted with SamePartyPres.
+4. The party’s generic ballot percentage.
+5. The party’s seatshare or voteshare from the prior election. Coefficient: beta(2) Omissions:</p>
+<p>One limitation of the linear model is that the sum of the Democratic and Republican seat/voteshare may not sum up nicely to 100 or 435. As a work around, I predict the point estimate and 95% prediction interval for Democrats’ voteshare using their model’s predicted value and voteshare for Republicans using 435-PredictionSeatShareDemocrats. Similarly, I predict the voteshare for Republicans and then compute 100-PredictionVoteShareRepublicans to get the predicted Democratic voteshare.
+For my Ohio-1st district model, I ran three different models: one that used fundamental data like the nationwide models, one that used fundamental data and Cook Partisan Voter Index information, and one with recent polling data.</p>
+</div>
+</div>
+<div id="accuracy" class="section level1">
+<h1>2. Accuracy</h1>
+<p>With 5 races still to be called, the Cook Political Report has the nationwide voteshare at 47.6% Democrat, 50.9% Republican, and 1.3% other. Given that I was calculating voteshare from a two-party perspective, I will restructure their percentages to be out of the total two-party voteshare, such that Democratic voteshare is 48.3% (47.6/98.5) and Republican voteshare is 51.7%. Hence, my model was very accurate with only a difference of .8 percentage points. While this difference is practically significant in the context of an election, it is still a small error given the complexity of the problem. And, it performed better than it did on average in my testing dataset, where there was a 1.3 percentage point average error.</p>
+<p>On the other hand, my seatshare model did not perform as well. To convert the current seatshare – Republicans: 218, Democrats:212 – I will convert these to their percentages out of 430 and then multiply by 435. Using this method, I get that Democrats will have 214 seats and Republicans will have 221 seats. While this is an imperfect final count, it closely follows many pundit predictions. The difference between my point estimates and the actual result was about 14 seats, which is larger than I would have expected or liked.</p>
+<p>For Ohio’s 1st-district, my point estimate interval was off by 5.7 percentage points, where the Democrat Landsman received about the voteshare I expected for Incumbent Chabot and vise-versas. My individual regression prediction intervals were substantially large that I was not confident about Chabot winning by 6 percentage points; however, I did not expect Landsman to win by 5 percentage points.</p>
+</div>
+<div id="hypotheses" class="section level1">
+<h1>3. Hypotheses</h1>
+<ol style="list-style-type: lower-alpha">
+<li>Turnout: For all my models, I excluded turnout forecasts or historical data. In this election, youth turnout was incredibly high, helping many Democrats win competitive races.</li>
+<li>Redistricting: In 2021, many states drew new electoral maps that affected the radius of congressional districts. Specifically, Ohio-01 was redistricted to include more parts of Cincinnati, which have historically voted more left than Ohio’s 1st district. My model included the Cook PVI to try and account for this, but they still thought it was a tossup Republican.</li>
+</ol>
+</div>
+<div id="quantitative-tests" class="section level1">
+<h1>4. Quantitative Tests</h1>
+<ol style="list-style-type: lower-alpha">
+<li>To test whether turnout would have helped my nationwide models, I could include youth polling turnout figures into my model and see if they would have helped with prediction error.</li>
+<li>To test the effect of redistricting at the Ohio-1st level, I would have considered adding other ratings into my rating-based model. Then, I could test whether an averaged rating system helped better forecast the changes to Ohio’s 1st electoral map.</li>
+</ol>
+</div>
+<div id="updates-to-model-in-future" class="section level1">
+<h1>5. Updates to model in future</h1>
+<p>As I mentioned in my quantitative tests, I would have experimented with turnout and further redistricting data to see if that would better predict nationwide and district-level data.</p>
+<p>Additionally, I would be interested in doing a district-by-district model. For this class, I stuck with a nationwide-based approach because I wasn’t confident in redistricting measures by district. However, I think to do a thorough seatshare model, it is best to model it at the individual seat level. I think that this will be much more feasible in the future years because the districts will be the same as their past iterations, so previous voteshare will be more predictive.</p>
+</div>
+
+
+		
+	</div>
+
+	<div class="pagination">
+		<a href="/post/2022-11-02-final-prediction/" class="left arrow">&#8592;</a>
+
+		<a href="#" class="top">Top</a>
+	</div>
+</main>
+
+
+        		<footer>
+			
+			<span>
+			&copy; <time datetime="2022-11-23 21:18:30.040962 -0500 EST m=&#43;0.166889168">2022</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			</span>
+		</footer>
+
+    </body>
+</html>
