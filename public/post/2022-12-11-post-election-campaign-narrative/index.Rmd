@@ -3,8 +3,41 @@ title: Post-Election Campaign Narrative
 author: R package build
 date: '2022-12-11'
 slug: []
-summary: In this post, I analyze the 
+summary: In this post, I analyze the recent Congressional race in Ohio's 1st district. 
 categories: []
 tags: []
 ---
 
+In this final blog post for Gov 1347, I analyze the 2022 Congressional race in Ohio's 1st district. I chose this district because it was considered a toss-up area where Democrats could flip the seat post-redistricting. Throughout the semester, I tracked the race and ultimately built a forecasting modeled that predicted the Incumbent Steve Chabot (R) would win with 53% of the vote. In actuality, Greg Landsman (D) unseated Chabot and received 52.5% of the popular vote.
+
+# Ohio-01 Summary
+
+Ohio's first district encompasses the Cincinnati metro area and is situated in the Southwest corner of Ohio. However, the district's exact boundaries have changed dramatically after Ohio drew a new congressional map in early 2022. As shown below, Ohio-01 now includes more of the Northern, rather than the Western, Cincinnati suburbs. 
+```{r redistrict, echo=FALSE, fig.cap="my caption", out.width = '90%'}
+knitr::include_graphics("oh_01.png")
+```
+** Images taken from Ballotpedia
+
+In the old OH-01, as shown to the left, Republican Steve Chabot represented the district from 1995-2009 and 2011-2022. Entering the 2022 election, he was the incumbent candidate and had won the 2020 election by a 7 point margin. OH-01 had gone for the Republican presidential candidate in every election since 2000, excluding 2008. In 2020, Trump beat Biden by a 3 point margin.
+
+Upon accounting for the new 2022 map, Daily Kos estimated that Biden would have won the district with 53% of the vote, or an 8 point margin. Similarly, the Cook Political Rpeort adjusted its Partisan VOter Index from R+5 to D+2. 
+
+# Forecasts
+
+For Ohio’s 1st-district, I forecasted that Incumbent Steve Chabot (R) would beat challenger Greg Landsman (D) with 53.2% of the popular vote. I emphasized the uncertainty of this point estimate, and overall race, by showing that the 95% confidence interval was about 10 percentage points in both directions. Hence, my prediction included the possibility that either candidate could win and predicted a close margin regardless. 
+My point estimate interval was off by 5.9 percentage points, as the Democrat Landsman received about the voteshare I expected for Incumbent Chabot and vise-versa. My individual regression prediction intervals were substantially large that I was not confident about Chabot winning by 6 percentage points; however, I did not expect Landsman to win by over 5 percentage points.
+My prediction was an average of three models: one that focused on fundamentals (economic indicators, incumbency), another that included expert ratings from Cook, and one that only relied on polling. Both latter measures, expert predictions and polls, predicted a close electoral race. 
+
+Cook’s Political Report called the Ohio-01 race a “toss up republican,” with a partisan voter index of D+2. Similarly, Ohio-01 was labeled a “toss up” by other prominent prognosticators, including Inside Elections and Sabato’s Crystal Ball. While The Economist predicted that Landsman (D) would win 61 percent of the time, FiveThirtyEight predicted that Chabot(R) would win 84% of the time and get 53% of the popular vote. The New York Times had a point estimate in between these two, with Chabot leading by about 2.5 points. 
+
+While the polling for Ohio-01’s 2022 race was limited to three reputable surveys, they ended up being very close to the actual outcome. The three polls were all from Impact Research, a polling firm that gets a B/C rating from FiveThirtyEight. In the first poll conducted in May, the respondents were tied with each candidate netting 47% support. The two polls in the fall, each showed Landsman up 49%-46%; however, this differential was within the margin of error of 4.4%. 
+
+# Candidates and their Campaigns 
+
+## Greg Landsman
+
+## Steve Chabot
+
+# Conclusion
+
+# Works Cited
