@@ -41,7 +41,10 @@ My forecast was a weighted average of three models: one that focused on fundamen
 
 Cook’s Political Report called the Ohio-01 race a “toss up republican,” with a partisan voter index of D+2. Similarly, Ohio-01 was labeled a “toss up” by other prominent prognosticators, including Inside Elections and Sabato’s Crystal Ball. While The Economist predicted that Landsman (D) would win 61 percent of the time, FiveThirtyEight predicted that Chabot(R) would win 84% of the time and get 53% of the popular vote. The New York Times had a point estimate in between these two, with Chabot leading by about 2.5 points. Finally, Politico was closest to the actual outcome, calling the race "Leans Democrat."
 
+Overall, the forecasts from Politico, Inside Elections, and Sabato were very close to the outcome. On the other hand, FiveThirtyEight, the NYT, and I expected a different outcome, although we all understood our models to capture significant uncertainty. 
+
 While the polling for Ohio-01’s 2022 race was limited to only three reputable surveys, they ended up being very close to the actual outcome. The three polls were all from Impact Research, a polling firm that gets a B/C rating from FiveThirtyEight. In the first poll conducted in May, the respondents were tied with each candidate netting 47% support. The two polls in the fall, each showed Landsman up 49%-46%; however, this differential was within the margin of error of 4.4%. 
+
 
 # Candidates and their Campaigns 
 
@@ -82,7 +85,9 @@ On the campaign side, I think both candidates performed well at running insurgen
 that Chabot did not highlight his local achievements enough. His campaign was very attack heavy on the Democrats, and
 the accomplishments he listed in his about page were all at a national scale. On the other hand,
 Landsman had a nice balance of pro and attack ads, showcasing his progress in Cincinnati preschooling  while 
-also criticizing Chabot's track record on abortion rights. 
+also criticizing Chabot's track record on abortion rights. Hence, Landsman's ability
+to balance both type of advertisements may have pushed him over the edge, and exceed
+forecasting. However, I believe that the main reason why forecasters (including myself) were too confident about Chabot winning was that we underestimated the demographic shift from redistricting.
 
 
 # Works Cited
